@@ -10,7 +10,6 @@ from pathlib import Path
 from collections import deque
 
 from tools.print_info import print_video_info, step_message
-from tools.annotators import box_annotations, track_annotations, mask_annotations
 from tools.write_csv import csv_tracks_list, write_csv
 
 # For debugging
@@ -22,12 +21,21 @@ def main():
     model = YOLO(f"weights/{WEIGHTS}.pt")
     step_message('1', 'YOLOv8 Model Initialized')
 
+    # Initialize Byte Tracker
+    byte_tracker = sv.ByteTrack()
+    step_message('2', 'ByteTrack Tracker Initialized')
+
     # Initialize video capture
-    step_message('2', 'Initializing Video Source')
-    frame_generator = sv.get_video_frames_generator(source_path=f"{FOLDER}/{SOURCE}")
+    step_message('3', 'Initializing Video Source')
     video_info = sv.VideoInfo.from_video_path(video_path=f"{FOLDER}/{SOURCE}")
-    print_video_info(f"{FOLDER}/{SOURCE}", video_info)
+    frame_generator = sv.get_video_frames_generator(source_path=f"{FOLDER}/{SOURCE}")
+    # print_video_info(f"{FOLDER}/{SOURCE}", video_info)
     target = f"{FOLDER}/{Path(SOURCE).stem}"
+
+    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
+    label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
+    trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=128, thickness=1)
+    heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
     step_message('3', 'Video Processing Started')
@@ -38,11 +46,9 @@ def main():
         for image in tqdm(frame_generator, total=video_info.total_frames, unit='frames'):
             annotated_image = image.copy()
 
-            # Perform tracking with the model
-            results = model.track(
+            # Process YOLOv8 detections
+            results = model(
                 source=image,
-                persist=True,
-                tracker="botsort.yaml",
                 imgsz=IMAGE_SIZE,
                 conf=CONFIDENCE,
                 device=0,
@@ -53,24 +59,45 @@ def main():
             )[0]
 
             # Process YOLOv8 detections
-            tracks = sv.Detections.from_ultralytics(results)
+            detections = sv.Detections.from_ultralytics(results)
 
-            for track in tracks:
-                if track[4] not in track_deque:
-                    track_deque[track[4]] = deque(maxlen=TRACK_LENGTH)
+            # Update tracks
+            tracks = byte_tracker.update_with_detections(detections)
 
-            # Visualization
-            labels = [f"{results.names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]  if DRAW_LABELS else None
+            # Draw labels
+            if DRAW_LABELS:
+                object_labels = [f"{results.names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                annotated_image = label_annotator.annotate(
+                    scene=annotated_image,
+                    detections=tracks,
+                    labels=object_labels
+                )
 
             # Draw boxes
-            if DRAW_BOXES: annotated_image = box_annotations(annotated_image, tracks, labels)
+            if DRAW_BOXES:
+                annotated_image = bounding_box_annotator.annotate(
+                    scene=annotated_image,
+                    detections=tracks
+                )
                 
             # Draw masks
-            if DRAW_MASKS and tracks.mask is not None:
-                annotated_image = mask_annotations(annotated_image, tracks)
+            # if DRAW_MASKS and tracks.mask is not None:
+            #     annotated_image = mask_annotations(annotated_image, tracks)
 
             # Draw tracks
-            if DRAW_TRACKS: annotated_image = track_annotations(annotated_image, tracks, track_deque, 'centroid')
+            if DRAW_TRACKS:
+                annotated_image = trace_annotator.annotate(
+                    scene=annotated_image,
+                    detections=tracks
+                )
+
+            # Draw heatmap
+            if DRAW_HEATMAP:
+                annotated_image = heatmap_annotator.annotate(
+                    scene=annotated_image,
+                    detections=tracks
+                )
+
 
             # Save video
             if SAVE_VIDEO: sink.write_frame(frame=annotated_image)
@@ -112,6 +139,7 @@ if __name__ == "__main__":
     DRAW_LABELS = config['DRAW']['LABELS']
     DRAW_MASKS = config['DRAW']['MASKS']
     DRAW_TRACKS = config['DRAW']['TRACKS']
+    DRAW_HEATMAP = config['DRAW']['HEATMAP']
     TRACK_LENGTH = config['DRAW']['TRACK_LENGTH']
     SHOW_RESULTS = config['SHOW']
     SAVE_VIDEO = config['SAVE']['VIDEO']
