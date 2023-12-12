@@ -34,7 +34,7 @@ def main():
 
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
-    trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=128, thickness=1)
+    trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=TRACK_LENGTH, thickness=1)
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
@@ -145,8 +145,4 @@ if __name__ == "__main__":
     SAVE_VIDEO = config['SAVE']['VIDEO']
     SAVE_CSV = config['SAVE']['CSV']
 
-    # Object tracks
-    track_deque = {}
-
-    with torch.no_grad():
-        main()
+    main()
