@@ -10,7 +10,6 @@ from pathlib import Path
 from collections import deque
 
 from tools.print_info import print_video_info, step_message
-from tools.annotators import box_annotations, track_annotations
 from tools.write_csv import csv_tracks_list, write_csv
 
 # For debugging
