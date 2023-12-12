@@ -37,7 +37,7 @@ def main():
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
-    step_message('3', 'Video Processing Started')
+    step_message('4', 'Video Processing Started')
     t_start = time.time()
     results_data = []
     frame_number = 0
@@ -56,8 +56,6 @@ def main():
                 retina_masks=True,
                 verbose=False
             )[0]
-
-            # Process YOLOv8 detections
             detections = sv.Detections.from_ultralytics(results)
 
             # Update tracks
@@ -100,7 +98,6 @@ def main():
                     detections=tracks
                 )
 
-
             # Save video
             if SAVE_VIDEO: sink.write_frame(frame=annotated_image)
 
@@ -118,7 +115,7 @@ def main():
 
     # Saving data in CSV
     if SAVE_CSV:
-        step_message('4', 'Saving Results in CSV file')
+        step_message('5', 'Saving Results in CSV file')
         write_csv(f"{target}.csv", results_data)
     
     # Print total time elapsed
