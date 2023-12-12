@@ -3,11 +3,9 @@ import supervision as sv
 
 import yaml
 import cv2
-import torch
 import time
 from tqdm import tqdm
 from pathlib import Path
-from collections import deque
 
 from tools.print_info import print_video_info, step_message
 from tools.write_csv import csv_tracks_list, write_csv
@@ -32,8 +30,9 @@ def main():
     # print_video_info(f"{FOLDER}/{SOURCE}", video_info)
     target = f"{FOLDER}/{Path(SOURCE).stem}"
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
+    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
+    mask_annotator = sv.MaskAnnotator()
     trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=TRACK_LENGTH, thickness=1)
     heatmap_annotator = sv.HeatMapAnnotator()
 
@@ -81,8 +80,11 @@ def main():
                 )
                 
             # Draw masks
-            # if DRAW_MASKS and tracks.mask is not None:
-            #     annotated_image = mask_annotations(annotated_image, tracks)
+            if DRAW_MASKS:
+                annotated_image = mask_annotator.annotate(
+                    scene=annotated_image,
+                    detections=detections
+                )
 
             # Draw tracks
             if DRAW_TRACKS:
