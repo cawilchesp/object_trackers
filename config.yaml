@@ -1,8 +1,9 @@
 YOLO:
   # YOLO_WEIGHTS: 'yolov8m'
   YOLO_WEIGHTS: 'yolo_nas_m'
+  # YOLO_WEIGHTS: 'rtdetr-l'
 INPUT:
-  FOLDER: 'D:/Data/'
+  FOLDER: 'D:/Data'
   SOURCE: 'paradero.mp4'
 DETECTION:
   CLASS_FILTER: [0,1,2,3,5,7]
