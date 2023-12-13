@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 from tools.print_info import print_video_info, step_message
-from tools.write_csv import csv_tracks_list, write_csv
+from tools.write_csv import csv_tracks_list, csv_detections_list, write_csv
 
 # For debugging
 from icecream import ic
@@ -17,18 +17,26 @@ from icecream import ic
 def main():
     # Initialize RT-DETR Model
     model = RTDETR(f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt")
-    step_message('1', 'RT-DETR Model Initialized')
+    step_count = 1
+    step_message(str(step_count), 'RT-DETR Model Initialized')
 
     # Initialize Byte Tracker
-    byte_tracker = sv.ByteTrack()
-    step_message('2', 'ByteTrack Tracker Initialized')
+    if TRACKING:
+        byte_tracker = sv.ByteTrack()
+        step_count = 1
+        step_message(str(step_count), 'ByteTrack Tracker Initialized')
 
     # Initialize video capture
-    step_message('3', 'Initializing Video Source')
+    step_count = 1
+    step_message(str(step_count), 'Initializing Video Source')
     video_info = sv.VideoInfo.from_video_path(video_path=f"{FOLDER}/{SOURCE}")
     frame_generator = sv.get_video_frames_generator(source_path=f"{FOLDER}/{SOURCE}")
     # print_video_info(f"{FOLDER}/{SOURCE}", video_info)
-    target = f"{FOLDER}/{Path(SOURCE).stem}"
+    
+    if TRACKING:
+        target = f"{FOLDER}/{Path(SOURCE).stem}_tracking"
+    else:
+        target = f"{FOLDER}/{Path(SOURCE).stem}_detection"
 
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
@@ -36,7 +44,8 @@ def main():
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
-    step_message('4', 'Video Processing Started')
+    step_count = 1
+    step_message(str(step_count), 'Video Processing Started')
     t_start = time.time()
     results_data = []
     frame_number = 0
@@ -58,14 +67,19 @@ def main():
             detections = sv.Detections.from_ultralytics(results)
 
             # Update tracks
-            tracks = byte_tracker.update_with_detections(detections)
+            if TRACKING:
+                tracks = byte_tracker.update_with_detections(detections)
 
             # Draw labels
             if DRAW_LABELS:
-                object_labels = [f"{results.names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                if TRACKING:
+                    object_labels = [f"{results.names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                else:
+                    object_labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections]
+                    
                 annotated_image = label_annotator.annotate(
                     scene=annotated_image,
-                    detections=tracks,
+                    detections=tracks if TRACKING else detections,
                     labels=object_labels
                 )
 
@@ -73,11 +87,11 @@ def main():
             if DRAW_BOXES:
                 annotated_image = bounding_box_annotator.annotate(
                     scene=annotated_image,
-                    detections=tracks
+                    detections=tracks if TRACKING else detections
                 )
 
             # Draw tracks
-            if DRAW_TRACKS:
+            if DRAW_TRACKS and TRACKING:
                 annotated_image = trace_annotator.annotate(
                     scene=annotated_image,
                     detections=tracks
@@ -87,14 +101,18 @@ def main():
             if DRAW_HEATMAP:
                 annotated_image = heatmap_annotator.annotate(
                     scene=annotated_image,
-                    detections=tracks
+                    detections=tracks if TRACKING else detections
                 )
 
             # Save video
             if SAVE_VIDEO: sink.write_frame(frame=annotated_image)
 
             # Save data in list
-            results_data = csv_tracks_list(results_data, frame_number, tracks, results.names)
+            if TRACKING:
+                results_data = csv_tracks_list(results_data, frame_number, tracks, results.names)
+            else:
+                results_data = csv_detections_list(results_data, frame_number, detections, results.names)
+
             frame_number += 1
 
             # View live results
@@ -107,7 +125,8 @@ def main():
 
     # Saving data in CSV
     if SAVE_CSV:
-        step_message('5', 'Saving Results in CSV file')
+        step_count = 1
+        step_message(str(step_count), 'Saving Results in CSV file')
         write_csv(f"{target}.csv", results_data)
     
     # Print total time elapsed
@@ -127,6 +146,7 @@ if __name__ == "__main__":
     CONFIDENCE = config['DETECTION']['CONFIDENCE']
     CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
     IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
+    TRACKING = config['TRACKING']
     DRAW_BOXES = config['DRAW']['BOXES']
     DRAW_LABELS = config['DRAW']['LABELS']
     DRAW_MASKS = config['DRAW']['MASKS']
