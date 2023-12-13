@@ -16,7 +16,7 @@ from icecream import ic
 
 def main():
     # Initialize YOLOv8 Model
-    model = YOLO(f"weights/{WEIGHTS}.pt")
+    model = YOLO(f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt")
     step_message('1', 'YOLOv8 Model Initialized')
 
     # Initialize Byte Tracker
@@ -128,9 +128,10 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Get configuration parameters
+    MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
+    MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
     SOURCE = config['INPUT']['SOURCE']
-    WEIGHTS = config['YOLO']['YOLO_WEIGHTS']
     CONFIDENCE = config['DETECTION']['CONFIDENCE']
     CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
     IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
