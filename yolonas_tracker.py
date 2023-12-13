@@ -3,14 +3,12 @@ import supervision as sv
 
 import yaml
 import cv2
-import torch
 import time
 from tqdm import tqdm
 from pathlib import Path
-from collections import deque
 
 from tools.print_info import print_video_info, step_message
-from tools.write_csv import csv_tracks_list, write_csv
+from tools.write_csv import csv_tracks_list, csv_detections_list, write_csv
 
 # For debugging
 from icecream import ic
@@ -18,19 +16,27 @@ from icecream import ic
 
 def main():
     # Initialize YOLO-NAS Model
-    yolo_nas_model = models.get(model_name=WEIGHTS, pretrained_weights='coco').cuda()
-    step_message('1', 'YOLO-NAS Model Initialized')
+    model = models.get(model_name=MODEL_WEIGHTS, pretrained_weights='coco').cuda()
+    step_count = 1
+    step_message(str(step_count), 'YOLO-NAS Model Initialized')
 
     # Initialize Byte Tracker
-    byte_tracker = sv.ByteTrack()
-    step_message('2', 'ByteTrack Tracker Initialized')
+    if TRACKING:
+        byte_tracker = sv.ByteTrack()
+        step_count = 1
+        step_message(str(step_count), 'ByteTrack Tracker Initialized')
 
     # Initialize video capture
-    step_message('3', 'Initializing Video Source')
+    step_count = 1
+    step_message(str(step_count), 'Initializing Video Source')
     video_info = sv.VideoInfo.from_video_path(video_path=f"{FOLDER}/{SOURCE}")
     frame_generator = sv.get_video_frames_generator(source_path=f"{FOLDER}/{SOURCE}")
     # print_video_info(f"{FOLDER}/{SOURCE}", video_info)
-    target = f"{FOLDER}/{Path(SOURCE).stem}"
+    
+    if TRACKING:
+        target = f"{FOLDER}/{Path(SOURCE).stem}_tracking"
+    else:
+        target = f"{FOLDER}/{Path(SOURCE).stem}_detection"
 
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
@@ -38,7 +44,8 @@ def main():
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
-    step_message('4', 'Video Processing Started')
+    step_count = 1
+    step_message(str(step_count), 'Video Processing Started')
     t_start = time.time()
     results_data = []
     frame_number = 0
@@ -47,18 +54,23 @@ def main():
             annotated_image = image.copy()
 
             # Process YOLO-NAS detections
-            results = list(yolo_nas_model.predict(image, conf=CONFIDENCE, fuse_model=False))[0]
+            results = list(model.predict(image, conf=CONFIDENCE, fuse_model=False))[0]
             detections = sv.Detections.from_yolo_nas(results)
 
             # Update tracks
-            tracks = byte_tracker.update_with_detections(detections)
+            if TRACKING:
+                tracks = byte_tracker.update_with_detections(detections)
 
             # Draw labels
             if DRAW_LABELS:
-                object_labels = [f"{results.class_names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                if TRACKING:
+                    object_labels = [f"{results.class_names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                else:
+                    object_labels = [f"{results.class_names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections]
+                    
                 annotated_image = label_annotator.annotate(
                     scene=annotated_image,
-                    detections=tracks,
+                    detections=tracks if TRACKING else detections,
                     labels=object_labels
                 )
 
@@ -66,11 +78,11 @@ def main():
             if DRAW_BOXES:
                 annotated_image = bounding_box_annotator.annotate(
                     scene=annotated_image,
-                    detections=tracks
+                    detections=tracks if TRACKING else detections
                 )
 
             # Draw tracks
-            if DRAW_TRACKS:
+            if DRAW_TRACKS and TRACKING:
                 annotated_image = trace_annotator.annotate(
                     scene=annotated_image,
                     detections=tracks
@@ -80,14 +92,18 @@ def main():
             if DRAW_HEATMAP:
                 annotated_image = heatmap_annotator.annotate(
                     scene=annotated_image,
-                    detections=tracks
+                    detections=tracks if TRACKING else detections
                 )
 
             # Save video
             if SAVE_VIDEO: sink.write_frame(frame=annotated_image)
 
             # Save data in list
-            results_data = csv_tracks_list(results_data, frame_number, tracks, results.class_names)
+            if TRACKING:
+                results_data = csv_tracks_list(results_data, frame_number, tracks, results.class_names)
+            else:
+                results_data = csv_detections_list(results_data, frame_number, detections, results.class_names)
+
             frame_number += 1
 
             # Visualization
@@ -100,7 +116,8 @@ def main():
 
     # Saving data in CSV
     if SAVE_CSV:
-        step_message('5', 'Saving Results in CSV file')
+        step_count = 1
+        step_message(str(step_count), 'Saving Results in CSV file')
         write_csv(f"{target}.csv", results_data)
 
     # Print total time elapsed
@@ -113,12 +130,13 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Get configuration parameters
+    MODEL_WEIGHTS = config['MODEL']['NAS_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
     SOURCE = config['INPUT']['SOURCE']
-    WEIGHTS = config['YOLO']['YOLO_WEIGHTS']
     CONFIDENCE = config['DETECTION']['CONFIDENCE']
     CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
     IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
+    TRACKING = config['TRACKING']
     DRAW_BOXES = config['DRAW']['BOXES']
     DRAW_LABELS = config['DRAW']['LABELS']
     DRAW_MASKS = config['DRAW']['MASKS']
