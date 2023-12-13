@@ -16,7 +16,7 @@ from icecream import ic
 
 def main():
     # Initialize RT-DETR Model
-    model = RTDETR(f"weights/{WEIGHTS}.pt")
+    model = RTDETR(f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt")
     step_message('1', 'RT-DETR Model Initialized')
 
     # Initialize Byte Tracker
@@ -32,7 +32,6 @@ def main():
 
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
-    # mask_annotator = sv.MaskAnnotator()
     trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=TRACK_LENGTH, thickness=1)
     heatmap_annotator = sv.HeatMapAnnotator()
 
@@ -76,13 +75,6 @@ def main():
                     scene=annotated_image,
                     detections=tracks
                 )
-                
-            # Draw masks
-            # if DRAW_MASKS:
-            #     annotated_image = mask_annotator.annotate(
-            #         scene=annotated_image,
-            #         detections=detections
-            #     )
 
             # Draw tracks
             if DRAW_TRACKS:
@@ -128,9 +120,10 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Get configuration parameters
+    MODEL_FOLDER = config['MODEL']['RTDETR_FOLDER']
+    MODEL_WEIGHTS = config['MODEL']['RTDETR_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
     SOURCE = config['INPUT']['SOURCE']
-    WEIGHTS = config['YOLO']['YOLO_WEIGHTS']
     CONFIDENCE = config['DETECTION']['CONFIDENCE']
     CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
     IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
