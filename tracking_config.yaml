@@ -1,0 +1,26 @@
+MODEL:
+  YOLOV8_FOLDER: 'D:/Data/models/yolov8'
+  YOLOV8_WEIGHTS: 'yolov8m'
+  NAS_WEIGHTS: 'yolo_nas_m'
+  RTDETR_FOLDER: 'D:/Data/models/rt-detr'
+  RTDETR_WEIGHTS: 'rtdetr-l'
+INPUT:
+  FOLDER: 'D:/Data'
+  SOURCE: 'paradero.mp4'
+DETECTION:
+  CLASS_FILTER: [0,1,2,3,5,7]
+  CONFIDENCE: 0.5
+  IMAGE_SIZE: 640
+TRACKING: True
+DRAW:
+  LABELS: True
+  BOXES: True
+  MASKS: True
+  TRACKS: True
+  HEATMAP: False
+  TRACK_LENGTH: 100
+SHOW: True
+SAVE:
+  VIDEO: True
+  CSV: True
+  
