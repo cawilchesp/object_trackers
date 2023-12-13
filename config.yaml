@@ -1,14 +1,17 @@
-YOLO:
-  # YOLO_WEIGHTS: 'yolov8m'
-  YOLO_WEIGHTS: 'yolo_nas_m'
-  # YOLO_WEIGHTS: 'rtdetr-l'
+MODEL:
+  YOLOV8_FOLDER: 'D:/Data/models/yolov8'
+  YOLOV8_WEIGHTS: 'yolov8m'
+  NAS_FOLDER: 'D:/Data/models/'
+  NAS_WEIGHTS: 'yolo_nas_m'
+  RTDETR_FOLDER: 'D:/Data/models/rt-detr'
+  RTDETR_WEIGHTS: 'rtdetr-l'
 INPUT:
   FOLDER: 'D:/Data'
   SOURCE: 'paradero.mp4'
 DETECTION:
   CLASS_FILTER: [0,1,2,3,5,7]
   CONFIDENCE: 0.2
-  IMAGE_SIZE: 1280
+  IMAGE_SIZE: 640
 DRAW:
   LABELS: True
   BOXES: True
