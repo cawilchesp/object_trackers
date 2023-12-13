@@ -1,7 +1,6 @@
 MODEL:
   YOLOV8_FOLDER: 'D:/Data/models/yolov8'
   YOLOV8_WEIGHTS: 'yolov8m'
-  NAS_FOLDER: 'D:/Data/models/'
   NAS_WEIGHTS: 'yolo_nas_m'
   RTDETR_FOLDER: 'D:/Data/models/rt-detr'
   RTDETR_WEIGHTS: 'rtdetr-l'
