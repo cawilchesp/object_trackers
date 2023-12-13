@@ -1,0 +1,19 @@
+MODEL:
+  YOLOV8_FOLDER: 'D:/Data/models/yolov8'
+  YOLOV8_WEIGHTS: 'yolov8m-pose'
+INPUT:
+  FOLDER: 'D:/Data'
+  SOURCE: 'bus.mp4'
+DETECTION:
+  CONFIDENCE: 0.5
+  IMAGE_SIZE: 640
+DRAW:
+  LABELS: True
+  BOXES: True
+  MASKS: True
+  TRACKS: True
+SHOW: True
+SAVE:
+  VIDEO: True
+  CSV: True
+  
