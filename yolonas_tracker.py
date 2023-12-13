@@ -126,7 +126,7 @@ def main():
 
 if __name__ == "__main__":
     # Initialize Configuration File
-    with open('config.yaml', 'r') as file:
+    with open('trackers_config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
     # Get configuration parameters
