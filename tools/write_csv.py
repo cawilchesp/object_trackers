@@ -18,12 +18,12 @@ def csv_detections_list(data: list, frame_number: int, detections: Detections, c
 
 
 def csv_tracks_list(data: list, frame_number: int, tracks, class_names) -> list:
-    for xyxy, _, _, class_id, tracker_id in tracks:
+    for xyxy, _, confidence, class_id, tracker_id in tracks:
         x = int(xyxy[0])
         y = int(xyxy[1])
         w = int(xyxy[2]-xyxy[0])
         h = int(xyxy[3]-xyxy[1])
-        data.append([frame_number, tracker_id, class_names[class_id], x, y, w, h, None])
+        data.append([frame_number, tracker_id, class_names[class_id], x, y, w, h, confidence])
 
     return data
 
