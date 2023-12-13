@@ -1,11 +1,13 @@
-from ultralytics import NAS
+from super_gradients.training import models
 import supervision as sv
 
 import yaml
 import cv2
+import torch
 import time
 from tqdm import tqdm
 from pathlib import Path
+from collections import deque
 
 from tools.print_info import print_video_info, step_message
 from tools.write_csv import csv_tracks_list, write_csv
@@ -16,7 +18,7 @@ from icecream import ic
 
 def main():
     # Initialize YOLO-NAS Model
-    model = NAS(f"weights/{WEIGHTS}.pt")
+    yolo_nas_model = models.get(model_name=WEIGHTS, pretrained_weights='coco').cuda()
     step_message('1', 'YOLO-NAS Model Initialized')
 
     # Initialize Byte Tracker
@@ -32,7 +34,6 @@ def main():
 
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
-    # mask_annotator = sv.MaskAnnotator()
     trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=TRACK_LENGTH, thickness=1)
     heatmap_annotator = sv.HeatMapAnnotator()
 
@@ -46,16 +47,7 @@ def main():
             annotated_image = image.copy()
 
             # Process YOLO-NAS detections
-            results = model(
-                source=image,
-                imgsz=IMAGE_SIZE,
-                conf=CONFIDENCE,
-                device=0,
-                agnostic_nms=True,
-                classes=CLASS_FILTER,
-                retina_masks=True,
-                verbose=False
-            )[0]
+            results = list(yolo_nas_model.predict(image, conf=CONFIDENCE, fuse_model=False))[0]
             detections = sv.Detections.from_yolo_nas(results)
 
             # Update tracks
@@ -63,7 +55,7 @@ def main():
 
             # Draw labels
             if DRAW_LABELS:
-                object_labels = [f"{results.names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                object_labels = [f"{results.class_names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
                 annotated_image = label_annotator.annotate(
                     scene=annotated_image,
                     detections=tracks,
@@ -98,7 +90,7 @@ def main():
             results_data = csv_tracks_list(results_data, frame_number, tracks, results.class_names)
             frame_number += 1
 
-            # View live results
+            # Visualization
             if SHOW_RESULTS:
                 cv2.namedWindow('Output', cv2.WINDOW_KEEPRATIO)
                 cv2.imshow('Output', annotated_image)
@@ -138,3 +130,4 @@ if __name__ == "__main__":
     SAVE_CSV = config['SAVE']['CSV']
 
     main()
+        
