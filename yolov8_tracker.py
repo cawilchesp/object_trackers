@@ -74,7 +74,7 @@ def main():
             # Draw labels
             if DRAW_LABELS:
                 if TRACKING:
-                    object_labels = [f"{results.names[class_id]} - {tracker_id}" for _, _, _, class_id, tracker_id in tracks]
+                    object_labels = [f"{results.names[class_id]} - {tracker_id} - {score:.2f}" for _, _, score, class_id, tracker_id in tracks]
                 else:
                     object_labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections]
                     
