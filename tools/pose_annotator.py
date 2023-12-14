@@ -6,6 +6,8 @@ import numpy as np
 from supervision.annotators.utils import ColorLookup, get_color_by_index
 from supervision.draw.color import Color, ColorPalette
 
+from icecream import ic
+
 # COLOR_LIST = sv.ColorPalette.from_hex([
 #     '#ff2d55',
 #     '#0f7f07',
@@ -46,29 +48,57 @@ class PoseAnnotator:
             ultralytics_results,
         ) -> np.ndarray:
 
-        poses = ultralytics_results.keypoints.data.cpu().numpy().astype(int)
-    
-        for keypoints in poses:
-            color_head = get_color_by_index(color=self.color, idx=0)
-            nose =      (keypoints[0][0], keypoints[0][1])
-            left_eye =  (keypoints[1][0], keypoints[1][1])
-            right_eye = (keypoints[2][0], keypoints[2][1])
-            left_ear =  (keypoints[3][0], keypoints[3][1])
-            right_ear = (keypoints[4][0], keypoints[4][1])
-            # Draw points
-            cv2.circle(scene, nose, 4, color_head.as_bgr(), -1)
-            cv2.circle(scene, left_eye, 4, color_head.as_bgr(), -1)
-            cv2.circle(scene, right_eye, 4, color_head.as_bgr(), -1)
-            cv2.circle(scene, left_ear, 4, color_head.as_bgr(), -1)
-            cv2.circle(scene, right_ear, 4, color_head.as_bgr(), -1)
-            # Draw lines
-            cv2.line(scene, nose, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, nose, right_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_eye, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, left_ear, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_ear, right_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
+        poses = ultralytics_results.keypoints.data.cpu().numpy()
 
-            color_arms = get_color_by_index(color=self.color, idx=1)
+        # puntos
+        points = {
+            "head" :[0,1,2,3,4],
+            "arms" :[5,6,7,8,9,10],
+            "trunk": [11,12],
+            "legs" :[13,14,15,16]
+        }
+
+        # lineas
+        head = [(),(),(),(),()]
+        arms = [(),(),(),(),()]
+        trunk = [(),(),(),(),()]
+        legs = [(),(),(),(),()]
+
+        color_head = get_color_by_index(color=self.color, idx=0)
+        color_arms = get_color_by_index(color=self.color, idx=1)
+        color_trunk = get_color_by_index(color=self.color, idx=2)
+        color_legs = get_color_by_index(color=self.color, idx=3)
+    
+        for pose in poses:
+            for index, (x, y, score) in enumerate(pose):
+                for point in points:
+                    if index in 
+            
+
+
+                    nose =      (pose[0][0], pose[0][1])
+                    left_eye =  (pose[1][0], pose[1][1])
+                    right_eye = (pose[2][0], pose[2][1])
+                    left_ear =  (pose[3][0], pose[3][1])
+                    right_ear = (pose[4][0], pose[4][1])
+                    # Draw points
+                    cv2.circle(scene, nose, 4, color_head.as_bgr(), -1)
+                    cv2.circle(scene, left_eye, 4, color_head.as_bgr(), -1)
+                    cv2.circle(scene, right_eye, 4, color_head.as_bgr(), -1)
+                    cv2.circle(scene, left_ear, 4, color_head.as_bgr(), -1)
+                    cv2.circle(scene, right_ear, 4, color_head.as_bgr(), -1)
+                    # Draw lines
+                    cv2.line(scene, nose, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
+                    cv2.line(scene, nose, right_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
+                    cv2.line(scene, right_eye, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
+                    cv2.line(scene, left_ear, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
+                    cv2.line(scene, right_ear, right_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
+
+
+
+
+
+            
             left_shoulder =  (keypoints[5][0], keypoints[5][1])
             right_shoulder = (keypoints[6][0], keypoints[6][1])
             left_elbow =     (keypoints[7][0], keypoints[7][1])
@@ -90,7 +120,7 @@ class PoseAnnotator:
             cv2.line(scene, right_shoulder, right_elbow, color_arms.as_bgr(), 2, cv2.LINE_AA)
             cv2.line(scene, right_elbow, right_hand, color_arms.as_bgr(), 2, cv2.LINE_AA)
 
-            color_trunk = get_color_by_index(color=self.color, idx=2)
+            
             left_hip = (keypoints[11][0], keypoints[11][1])
             right_hip = (keypoints[12][0], keypoints[12][1])
             # Draw points
@@ -101,7 +131,7 @@ class PoseAnnotator:
             cv2.line(scene, left_hip, right_hip, color_trunk.as_bgr(), 2, cv2.LINE_AA)
             cv2.line(scene, right_hip, right_shoulder, color_trunk.as_bgr(), 2, cv2.LINE_AA)
 
-            color_legs = get_color_by_index(color=self.color, idx=3)
+            
             left_knee = (keypoints[13][0], keypoints[13][1])
             right_knee = (keypoints[14][0], keypoints[14][1])
             left_foot = (keypoints[15][0], keypoints[15][1])
