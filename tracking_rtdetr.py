@@ -23,11 +23,11 @@ def main():
     # Initialize Byte Tracker
     if TRACKING:
         byte_tracker = sv.ByteTrack()
-        step_count = 1
+        step_count += 1
         step_message(str(step_count), 'ByteTrack Tracker Initialized')
 
     # Initialize video capture
-    step_count = 1
+    step_count += 1
     step_message(str(step_count), 'Initializing Video Source')
     video_info = sv.VideoInfo.from_video_path(video_path=f"{FOLDER}/{SOURCE}")
     frame_generator = sv.get_video_frames_generator(source_path=f"{FOLDER}/{SOURCE}")
@@ -44,7 +44,7 @@ def main():
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
-    step_count = 1
+    step_count += 1
     step_message(str(step_count), 'Video Processing Started')
     t_start = time.time()
     results_data = []
@@ -125,7 +125,7 @@ def main():
 
     # Saving data in CSV
     if SAVE_CSV:
-        step_count = 1
+        step_count += 1
         step_message(str(step_count), 'Saving Results in CSV file')
         write_csv(f"{target}.csv", results_data)
     
@@ -135,7 +135,7 @@ def main():
 
 if __name__ == "__main__":
     # Initialize Configuration File
-    with open('trackers_config.yaml', 'r') as file:
+    with open('tracking_config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
     # Get configuration parameters
