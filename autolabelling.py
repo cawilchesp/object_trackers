@@ -64,7 +64,6 @@ def main():
                 conf=CONFIDENCE,
                 device=0,
                 agnostic_nms=True,
-                # classes=CLASS_FILTER,
                 retina_masks=True,
                 verbose=False
             )[0]
