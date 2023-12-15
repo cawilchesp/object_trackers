@@ -28,6 +28,7 @@ class PoseAnnotator:
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
+        radius: int = 4,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
@@ -40,6 +41,7 @@ class PoseAnnotator:
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.radius: int = radius
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
@@ -51,100 +53,40 @@ class PoseAnnotator:
         poses = ultralytics_results.keypoints.data.cpu().numpy()
 
         # puntos
-        points = {
-            "head" :[0,1,2,3,4],
-            "arms" :[5,6,7,8,9,10],
+        circles = {
+            "head": [0,1,2,3,4],
+            "arms": [5,6,7,8,9,10],
             "trunk": [11,12],
-            "legs" :[13,14,15,16]
+            "legs": [13,14,15,16]
         }
 
         # lineas
-        head = [(),(),(),(),()]
-        arms = [(),(),(),(),()]
-        trunk = [(),(),(),(),()]
-        legs = [(),(),(),(),()]
+        lines = {
+            "head": [(0,1),(0,2),(1,2),(1,3),(2,4)],
+            "arms": [(9,7),(7,5),(5,6),(6,8),(8,10)],
+            "trunk": [(5,11),(6,12),(11,12)],
+            "legs": [(11,13),(13,15),(12,14),(14,16)]
+        }
 
-        color_head = get_color_by_index(color=self.color, idx=0)
-        color_arms = get_color_by_index(color=self.color, idx=1)
-        color_trunk = get_color_by_index(color=self.color, idx=2)
-        color_legs = get_color_by_index(color=self.color, idx=3)
-    
+        colors = {
+            "head": get_color_by_index(color=self.color, idx=0),
+            "arms": get_color_by_index(color=self.color, idx=1),
+            "trunk": get_color_by_index(color=self.color, idx=2),
+            "legs": get_color_by_index(color=self.color, idx=3)
+        }
+
         for pose in poses:
-            for index, (x, y, score) in enumerate(pose):
-                for point in points:
-                    if index in 
-            
+            for key, value in circles.items():
+                for index in value:
+                    x, y, score = pose[index]
+                    if score >= 0.7:
+                        cv2.circle(scene, (int(x),int(y)), self.radius, colors[key].as_bgr(), -1)
 
-
-                    nose =      (pose[0][0], pose[0][1])
-                    left_eye =  (pose[1][0], pose[1][1])
-                    right_eye = (pose[2][0], pose[2][1])
-                    left_ear =  (pose[3][0], pose[3][1])
-                    right_ear = (pose[4][0], pose[4][1])
-                    # Draw points
-                    cv2.circle(scene, nose, 4, color_head.as_bgr(), -1)
-                    cv2.circle(scene, left_eye, 4, color_head.as_bgr(), -1)
-                    cv2.circle(scene, right_eye, 4, color_head.as_bgr(), -1)
-                    cv2.circle(scene, left_ear, 4, color_head.as_bgr(), -1)
-                    cv2.circle(scene, right_ear, 4, color_head.as_bgr(), -1)
-                    # Draw lines
-                    cv2.line(scene, nose, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-                    cv2.line(scene, nose, right_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-                    cv2.line(scene, right_eye, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-                    cv2.line(scene, left_ear, left_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-                    cv2.line(scene, right_ear, right_eye, color_head.as_bgr(), 2, cv2.LINE_AA)
-
-
-
-
-
-            
-            left_shoulder =  (keypoints[5][0], keypoints[5][1])
-            right_shoulder = (keypoints[6][0], keypoints[6][1])
-            left_elbow =     (keypoints[7][0], keypoints[7][1])
-            right_elbow =    (keypoints[8][0], keypoints[8][1])
-            left_hand =      (keypoints[9][0], keypoints[9][1])
-            right_hand =     (keypoints[10][0], keypoints[10][1])
-
-            # Draw points
-            cv2.circle(scene, left_shoulder, 4, color_arms.as_bgr(), -1)
-            cv2.circle(scene, right_shoulder, 4, color_arms.as_bgr(), -1)
-            cv2.circle(scene, left_elbow, 4, color_arms.as_bgr(), -1)
-            cv2.circle(scene, right_elbow, 4, color_arms.as_bgr(), -1)
-            cv2.circle(scene, left_hand, 4, color_arms.as_bgr(), -1)
-            cv2.circle(scene, right_hand, 4, color_arms.as_bgr(), -1)
-            # Draw lines
-            cv2.line(scene, left_hand, left_elbow, color_arms.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, left_elbow, left_shoulder, color_arms.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, left_shoulder, right_shoulder, color_arms.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_shoulder, right_elbow, color_arms.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_elbow, right_hand, color_arms.as_bgr(), 2, cv2.LINE_AA)
-
-            
-            left_hip = (keypoints[11][0], keypoints[11][1])
-            right_hip = (keypoints[12][0], keypoints[12][1])
-            # Draw points
-            cv2.circle(scene, left_hip, 4, color_trunk.as_bgr(), -1)
-            cv2.circle(scene, right_hip, 4, color_trunk.as_bgr(), -1)
-            # Draw lines
-            cv2.line(scene, left_shoulder, left_hip, color_trunk.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, left_hip, right_hip, color_trunk.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_hip, right_shoulder, color_trunk.as_bgr(), 2, cv2.LINE_AA)
-
-            
-            left_knee = (keypoints[13][0], keypoints[13][1])
-            right_knee = (keypoints[14][0], keypoints[14][1])
-            left_foot = (keypoints[15][0], keypoints[15][1])
-            right_foot = (keypoints[16][0], keypoints[16][1])
-            # Draw points
-            cv2.circle(scene, left_knee, 4, color_legs.as_bgr(), -1)
-            cv2.circle(scene, right_knee, 4, color_legs.as_bgr(), -1)
-            cv2.circle(scene, left_foot, 4, color_legs.as_bgr(), -1)
-            cv2.circle(scene, right_foot, 4, color_legs.as_bgr(), -1)
-            # Draw lines
-            cv2.line(scene, left_hip, left_knee, color_legs.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, left_knee, left_foot, color_legs.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_hip, right_knee, color_legs.as_bgr(), 2, cv2.LINE_AA)
-            cv2.line(scene, right_knee, right_foot, color_legs.as_bgr(), 2, cv2.LINE_AA)
+            for key, value in lines.items():
+                for index_1, index_2 in value:
+                    x1, y1, score_1 = pose[index_1]
+                    x2, y2, score_2 = pose[index_2]
+                    if score_1 >= 0.7 and score_2 >= 0.7:
+                        cv2.line(scene, (int(x1), int(y1)), (int(x2), int(y2)), colors[key].as_bgr(), self.thickness, cv2.LINE_AA)
 
         return scene
