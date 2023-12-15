@@ -31,7 +31,9 @@ def main():
     
     target = f"{FOLDER}/{Path(SOURCE).stem}_pose"
     
-    pose_annotator = PoseAnnotator()
+    label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
+    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
+    pose_annotator = PoseAnnotator(thickness=4, radius=8)
 
     # Start video processing
     step_count += 1
@@ -55,14 +57,23 @@ def main():
             )[0]
             detections = sv.Detections.from_ultralytics(results)
 
-            # Visualization
-            # labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections] if DRAW_LABELS else None
+            # Draw labels
+            if DRAW_LABELS:
+                object_labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections]
+                annotated_image = label_annotator.annotate(
+                    scene=annotated_image,
+                    detections=detections,
+                    labels=object_labels
+                )
 
             # Draw boxes
-            # if DRAW_BOXES: annotated_image = box_annotations(annotated_image, detections, labels)
+            if DRAW_BOXES:
+                annotated_image = bounding_box_annotator.annotate(
+                    scene=annotated_image,
+                    detections=detections
+                )
 
             # Draw poses
-            # if DRAW_POSES: 
             annotated_image = pose_annotator.annotate(
                 annotated_image,
                 results
@@ -107,9 +118,7 @@ if __name__ == "__main__":
     IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
     DRAW_BOXES = config['DRAW']['BOXES']
     DRAW_LABELS = config['DRAW']['LABELS']
-    # DRAW_POSES = config['DRAW']['POSES']
     SHOW_RESULTS = config['SHOW']
-    # CLIP_LENGTH = config['SAVE']['CLIP_LENGTH']
     SAVE_VIDEO = config['SAVE']['VIDEO']
     SAVE_CSV = config['SAVE']['CSV']
 
