@@ -5,13 +5,11 @@ INPUT:
   FOLDER: 'D:/Data'
   SOURCE: 'bus.mp4'
 DETECTION:
-  CONFIDENCE: 0.5
+  CONFIDENCE: 0.2
   IMAGE_SIZE: 640
 DRAW:
   LABELS: True
   BOXES: True
-  MASKS: True
-  TRACKS: True
 SHOW: True
 SAVE:
   VIDEO: True
