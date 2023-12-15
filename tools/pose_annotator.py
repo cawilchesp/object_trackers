@@ -6,8 +6,6 @@ import numpy as np
 from supervision.annotators.utils import ColorLookup, get_color_by_index
 from supervision.draw.color import Color, ColorPalette
 
-from icecream import ic
-
 # COLOR_LIST = sv.ColorPalette.from_hex([
 #     '#ff2d55',
 #     '#0f7f07',
