@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 from tools.print_info import print_video_info, step_message
-from tools.write_csv import csv_tracks_list, csv_detections_list, write_csv
+from tools.write_csv import output_data_list, write_csv
 
 # For debugging
 from icecream import ic
@@ -70,6 +70,9 @@ def main():
             # Update tracks
             if TRACKING:
                 tracks = byte_tracker.update_with_detections(detections)
+            # ic(results.boxes)
+            # ic(detections)
+            # quit()
 
             # Draw labels
             if DRAW_LABELS:
@@ -116,10 +119,11 @@ def main():
             if SAVE_VIDEO: sink.write_frame(frame=annotated_image)
 
             # Save data in list
+
             if TRACKING:
-                results_data = csv_tracks_list(results_data, frame_number, tracks, results.names)
+                results_data = output_data_list(results_data, frame_number, tracks, results.names)
             else:
-                results_data = csv_detections_list(results_data, frame_number, detections, results.names)
+                results_data = output_data_list(results_data, frame_number, detections, results.names)
 
             frame_number += 1
 
