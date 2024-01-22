@@ -7,28 +7,32 @@ import time
 from tqdm import tqdm
 from pathlib import Path
 
-from tools.print_info import print_video_info, step_message
+from tools.print_info import print_video_info, print_progress, step_message
 from tools.write_csv import output_data_list, write_csv
 
 # For debugging
 from icecream import ic
 
 
+def process_step() -> str:
+    """ Simple step counter """
+    global step_count
+    step_count = str(int(step_count) + 1)
+    return step_count
+
+
 def main():
     # Initialize YOLOv8 Model
     model = YOLO(f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt")
-    step_count = 1
-    step_message(str(step_count), 'YOLOv8 Model Initialized')
+    step_message(process_step(), 'YOLOv8 Model Initialized')
 
     # Initialize Byte Tracker
     if TRACKING:
         byte_tracker = sv.ByteTrack()
-        step_count += 1
-        step_message(str(step_count), 'ByteTrack Tracker Initialized')
+        step_message(process_step(), 'ByteTrack Tracker Initialized')
 
     # Initialize video capture
-    step_count += 1
-    step_message(str(step_count), 'Initializing Video Source')
+    step_message(process_step(), 'Initializing Video Source')
     video_info = sv.VideoInfo.from_video_path(video_path=f"{FOLDER}/{SOURCE}")
     frame_generator = sv.get_video_frames_generator(source_path=f"{FOLDER}/{SOURCE}")
     # print_video_info(f"{FOLDER}/{SOURCE}", video_info)
@@ -45,8 +49,7 @@ def main():
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
-    step_count += 1
-    step_message(str(step_count), 'Video Processing Started')
+    step_message(process_step(), 'Video Processing Started')
     t_start = time.time()
     results_data = []
     frame_number = 0
@@ -70,9 +73,6 @@ def main():
             # Update tracks
             if TRACKING:
                 tracks = byte_tracker.update_with_detections(detections)
-            # ic(results.boxes)
-            # ic(detections)
-            # quit()
 
             # Draw labels
             if DRAW_LABELS:
@@ -137,8 +137,7 @@ def main():
 
     # Saving data in CSV
     if SAVE_CSV:
-        step_count += 1
-        step_message(str(step_count), 'Saving Results in CSV file')
+        step_message(process_step(), 'Saving Results in CSV file')
         write_csv(f"{target}.csv", results_data)
     
     # Print total time elapsed
@@ -168,5 +167,7 @@ if __name__ == "__main__":
     SHOW_RESULTS = config['SHOW']
     SAVE_VIDEO = config['SAVE']['VIDEO']
     SAVE_CSV = config['SAVE']['CSV']
+
+    step_count = '0'
 
     main()
