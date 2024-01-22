@@ -3,33 +3,43 @@ import supervision as sv
 
 import yaml
 import cv2
-import torch
 import time
 from tqdm import tqdm
 from pathlib import Path
 
-from tools.print_info import print_image_info, step_message
-from tools.write_csv import csv_detections_list, write_csv
+from tools.print_info import print_video_info, print_progress, step_message
+from tools.write_csv import output_data_list, write_csv
 
 # For debugging
 from icecream import ic
 
 
+def process_step() -> str:
+    """ Simple step counter """
+    global step_count
+    step_count = str(int(step_count) + 1)
+    return step_count
+
+
 def main():
     # Initialize YOLOv8 Model
-    model = YOLO(f"weights/{WEIGHTS}.pt")
-    step_message('1', 'YOLOv8 Model Initialized')
+    model = YOLO(f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt")
+    step_message(process_step(), 'YOLOv8 Model Initialized')
 
     # Initialize Image capture
-    step_message('2', 'Initializing Image Source')
+    step_message(process_step(), 'Initializing Image Source')
     source_name = Path(SOURCE).stem
     source_extension = Path(SOURCE).suffix
-    image = cv2.imread(f"{FOLDER}{source_name}{source_extension}")
-    print_image_info(SOURCE, image)
+    image = cv2.imread(f"{FOLDER}/{source_name}{source_extension}")
+    # print_image_info(SOURCE, image)
     target = f"{FOLDER}/{Path(SOURCE).stem}"
+
+    label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
+    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
+    mask_annotator = sv.MaskAnnotator()
     
     # Start image processing
-    step_message('3', 'Image Processing Start')
+    step_message(process_step(), 'Image Processing Start')
     t_start = time.time()
     results_data = []
     annotated_image = image.copy()
@@ -49,21 +59,35 @@ def main():
     # Process YOLOv8 detections
     detections = sv.Detections.from_ultralytics(results)
 
-    # Visualization
-    labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections] if DRAW_LABELS else None
+    # Draw labels
+    if DRAW_LABELS:
+        object_labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections]
+
+        annotated_image = label_annotator.annotate(
+            scene=annotated_image,
+            detections=detections,
+            labels=object_labels
+        )
 
     # Draw boxes
-    if DRAW_BOXES: annotated_image = box_annotations(annotated_image, detections, labels)
+    if DRAW_BOXES:
+        annotated_image = bounding_box_annotator.annotate(
+            scene=annotated_image,
+            detections=detections
+        )
 
     # Draw masks
-    if DRAW_MASKS and detections.mask is not None:
-        annotated_image = mask_annotations(annotated_image, detections)
+    if DRAW_MASKS:
+        annotated_image = mask_annotator.annotate(
+            scene=annotated_image,
+            detections=detections
+        )
 
     # Save image
     if SAVE_IMAGE: cv2.imwrite(f"{target}.png", annotated_image)
     
     # Save data in list
-    results_data = csv_detections_list(results_data, None, detections, results.names)
+    results_data = output_data_list(results_data, None, detections, results.names)
 
     # Visualization
     if SHOW_RESULTS:
@@ -72,7 +96,7 @@ def main():
 
     # Saving data in CSV
     if SAVE_CSV:
-        step_message('4', 'Saving Results in CSV file')
+        step_message(process_step(), 'Saving Results in CSV file')
         write_csv(f"{target}.csv", results_data)
 
     # Print total time elapsed
@@ -81,13 +105,14 @@ def main():
 
 if __name__ == "__main__":
     # Initialize Configuration File
-    with open('config.yaml', 'r') as file:
+    with open('image_config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
     # Get configuration parameters
+    MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
+    MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
     SOURCE = config['INPUT']['SOURCE']
-    WEIGHTS = config['YOLO']['YOLO_WEIGHTS']
     CONFIDENCE = config['DETECTION']['CONFIDENCE']
     CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
     IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
@@ -98,5 +123,6 @@ if __name__ == "__main__":
     SAVE_IMAGE = config['SAVE']['IMAGE']
     SAVE_CSV = config['SAVE']['CSV']
 
-    with torch.no_grad():
-        main()
+    step_count = '0'
+
+    main()
