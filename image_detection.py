@@ -4,6 +4,7 @@ import supervision as sv
 import yaml
 import cv2
 import time
+import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
@@ -32,7 +33,7 @@ def main():
     source_extension = Path(SOURCE).suffix
     image = cv2.imread(f"{FOLDER}/{source_name}{source_extension}")
     # print_image_info(SOURCE, image)
-    target = f"{FOLDER}/{Path(SOURCE).stem}"
+    target = f"{FOLDER}/{Path(SOURCE).stem}_output"
 
     label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
@@ -43,6 +44,8 @@ def main():
     t_start = time.time()
     results_data = []
     annotated_image = image.copy()
+    annotated_image = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2BGRA)
+    annotated_image[:,:,0:4] = 0
 
     # Run YOLOv8 inference
     results = model(
@@ -84,7 +87,7 @@ def main():
         )
 
     # Save image
-    if SAVE_IMAGE: cv2.imwrite(f"{target}.png", annotated_image)
+    if SAVE_IMAGE: cv2.imwrite(f"{target}_animal.png", annotated_image)
     
     # Save data in list
     results_data = output_data_list(results_data, None, detections, results.names)
