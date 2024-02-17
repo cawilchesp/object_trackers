@@ -1,6 +1,7 @@
 from tools.video_info import VideoInfo
 from pathlib import Path
 
+from icecream import ic
 
 # Constants
 # ---------
@@ -15,22 +16,22 @@ FG_RESET = '\033[0m'
 # Funciones de color
 # ------------------
 def bold(text: str) -> str:
-    return f"{FG_BOLD}{text}{FG_RESET}"
+    return f"{FG_BOLD}{text}{FG_RESET}" if text is not None else ''
 
 def red(text: str) -> str:
-    return f"{FG_RED}{text}{FG_RESET}"
+    return f"{FG_RED}{text}{FG_RESET}" if text is not None else ''
 
 def green(text: str) -> str:
-    return f"{FG_GREEN}{text}{FG_RESET}"
+    return f"{FG_GREEN}{text}{FG_RESET}" if text is not None else ''
 
 def yellow(text: str) -> str:
-    return f"{FG_YELLOW}{text}{FG_RESET}"
+    return f"{FG_YELLOW}{text}{FG_RESET}" if text is not None else ''
 
 def blue(text: str) -> str:
-    return f"{FG_BLUE}{text}{FG_RESET}"
+    return f"{FG_BLUE}{text}{FG_RESET}" if text is not None else ''
 
 def white(text: str) -> str:
-    return f"{FG_WHITE}{text}{FG_RESET}"
+    return f"{FG_WHITE}{text}{FG_RESET}" if text is not None else ''
 
 # Funciones
 # ---------
@@ -39,34 +40,47 @@ def print_video_info(source: str, video_info: VideoInfo):
     
     # Print video information
     print(f"\n{red('*'*text_length)}")
-    print(f"{green('Source Information'): ^{text_length+9}}")
-    print(f"{bold('Source')}              {Path(source).name}") if not source.lower().startswith('rtsp://') else None
-    print(f"{bold('Size')}                {video_info.width} x {video_info.height}")
-    print(f"{bold('Total Frames')}        {video_info.total_frames}") if video_info.total_frames is not None else None
-    print(f"{bold('Frames Per Second')}   {video_info.fps:.2f}")
+    print(f"{green('Source Information'):^{text_length+9}}")
+    print(f"{bold('Source'):<29}{Path(source).name}") if not source.lower().startswith('rtsp://') else None
+    print(f"{bold('Size'):<29}{video_info.width} x {video_info.height}")
+    print(f"{bold('Total Frames'):<29}{video_info.total_frames}") if video_info.total_frames is not None else None
+    print(f"{bold('Frames Per Second'):<29}{video_info.fps:.2f}")
     print(f"\n{red('*'*text_length)}\n")
     
 
 def print_progress(frame_number: int, source_info: VideoInfo, progress_times: dict):
     total_frames = source_info.total_frames
-    frame_time = progress_times['frame_time']
     capture_time = progress_times['capture_time']
     inference_time = progress_times['inference_time']
-    annotations_time = progress_times['annotations_time']
+    detections_time = progress_times['detections_time']
+    tracks_time = progress_times['tracks_time']
+    saving_time = progress_times['saving_time']
+    drawings_time = progress_times['drawings_time']
+    files_time = progress_times['files_time']
+    frame_time = progress_times['frame_time']
     
-    percentage = f"[ {100*frame_number/total_frames:.1f} % ] " if total_frames is not None else None
+    percentage = f"[ {frame_number/total_frames:6.1%} ] " if total_frames is not None else ''
+    
+    frame_text_length = (2 * len(str(total_frames))) + 3
     frame_progress = f"{frame_number} / {total_frames}" if total_frames is not None else f"{frame_number}"
 
-    print(
-        f"{green(str(percentage))}"
-        f"{bold('Frame:')} {frame_progress}  |  "
-        f"{bold('Capture Time:')} {1000*(capture_time):.2f} ms  |  "
-        f"{bold('Inference Time:')} {1000*(inference_time):.2f} ms  |  "
-        f"{bold('Annotations Time:')} {1000*(annotations_time):.2f} ms  |  "
-        f"{bold('Time per Frame:')} {1000*(frame_time):.2f} ms"
-    )
+    if frame_number == 0:
+        print(f"{'':11}{bold('Frame'):>{frame_text_length+9}}{bold('Capture'):>22}{bold('Inference'):>22}{bold('Detections'):>22}{bold('Tracks'):>22}{bold('Saving'):>22}{bold('Drawings'):>22}{bold('Files'):>22}{bold('Total'):>22}")
 
+    print(
+        f"{green(percentage)}"
+        f"{frame_progress:>{frame_text_length}}  "
+        f"{1000*(capture_time):8.2f} ms  "
+        f"{1000*(inference_time):8.2f} ms  "
+        f"{1000*(detections_time):8.2f} ms  "
+        f"{1000*(tracks_time):8.2f} ms  "
+        f"{1000*(saving_time):8.2f} ms  "
+        f"{1000*(drawings_time):8.2f} ms  "
+        f"{1000*(files_time):8.2f} ms  "
+        f"{1000*(frame_time):8.2f} ms"
+    )
+    
 
 def step_message(step: str = None, message: str = None):
     step_text = green(f"[{step}]") if step != "Error" else red(f"[{step}]")
-    print(f"{step_text} {message}")
+    print(f"{step_text} {message} ✅")
