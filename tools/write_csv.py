@@ -3,7 +3,7 @@ from supervision.detection.core import Detections
 
 
 def output_data_list(output: list, frame_number: int, data: Detections, class_names: dict) -> list:
-    for xyxy, _, confidence, class_id, tracker_id in data:
+    for xyxy, _, confidence, class_id, tracker_id, _ in data:
         x = int(xyxy[0])
         y = int(xyxy[1])
         w = int(xyxy[2]-xyxy[0])
