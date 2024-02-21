@@ -42,10 +42,13 @@ def main():
     else:
         target = f"{FOLDER}/{Path(SOURCE).stem}_detection"
 
-    label_annotator = sv.LabelAnnotator(text_scale=0.3, text_padding=2, text_position=sv.Position.TOP_LEFT)
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=1)
+    line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(video_info.width,video_info.height)) * 0.75)
+    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(video_info.width,video_info.height)) * 0.75
+
+    label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
+    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
     mask_annotator = sv.MaskAnnotator()
-    trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=TRACK_LENGTH, thickness=1)
+    trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=TRACK_LENGTH, thickness=line_thickness)
     heatmap_annotator = sv.HeatMapAnnotator()
 
     # Start video processing
@@ -77,9 +80,9 @@ def main():
             # Draw labels
             if DRAW_LABELS:
                 if TRACKING:
-                    object_labels = [f"{results.names[class_id]} - {tracker_id} - {score:.2f}" for _, _, score, class_id, tracker_id in tracks]
+                    object_labels = [f"{results.names[class_id]} - {tracker_id} - {score:.2f}" for _, _, score, class_id, tracker_id, _ in tracks]
                 else:
-                    object_labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _ in detections]
+                    object_labels = [f"{results.names[class_id]} - {score:.2f}" for _, _, score, class_id, _, _ in detections]
                     
                 annotated_image = label_annotator.annotate(
                     scene=annotated_image,
