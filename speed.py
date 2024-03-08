@@ -99,7 +99,7 @@ def main():
     label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
     mask_annotator = sv.MaskAnnotator()
-    trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=TRACK_LENGTH, thickness=line_thickness)
+    trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=TRACK_LENGTH, thickness=line_thickness)
 
     polygon_zone = sv.PolygonZone(polygon=ZONE_ANALYSIS, frame_resolution_wh=(source_info.width,source_info.height))
     view_transformer = ViewTransformer(source=ZONE_ANALYSIS, target=TARGET)
