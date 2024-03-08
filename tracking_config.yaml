@@ -1,14 +1,16 @@
 MODEL:
   YOLOV8_FOLDER: 'D:/Data/models/yolov8'
-  YOLOV8_WEIGHTS: 'yolov8m'
+  YOLOV8_WEIGHTS: 'yolov8x_640_cct'
+  YOLOV9_FOLDER: 'D:/Data/models/yolov9'
+  YOLOV9_WEIGHTS: 'yolov9e'
   NAS_WEIGHTS: 'yolo_nas_m'
   RTDETR_FOLDER: 'D:/Data/models/rt-detr'
   RTDETR_WEIGHTS: 'rtdetr-l'
 INPUT:
-  FOLDER: 'D:/Data'
-  SOURCE: 'jueves_23_2.mp4'
+  FOLDER: 'D:/Data/CCT_Drones'
+  SOURCE: 'P2_50_100_CR.mp4'
 DETECTION:
-  CLASS_FILTER: [0,1,2,3,5,7]
+  CLASS_FILTER: [0,1,2,3,4,5,6]
   CONFIDENCE: 0.5
   IMAGE_SIZE: 640
 TRACKING: True
