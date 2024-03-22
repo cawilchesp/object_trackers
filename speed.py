@@ -93,8 +93,8 @@ def main():
     step_message(process_step(), 'Video Processing Started')
 
     # Annotators
-    line_thickness = sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width,source_info.height))
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(source_info.width,source_info.height))
+    line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width,source_info.height)) * 0.5)
+    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(source_info.width,source_info.height)) * 0.5
 
     label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
@@ -185,19 +185,19 @@ def main():
                     #     object_labels = [f"{result.class_names[class_id]} - {tracker_id} - {score:.2f}" for _, _, score, class_id, tracker_id, _ in tracks]
 
                     object_labels =[]
-                    for tracker_id, [_, y] in zip(tracks.tracker_id, points):
-                        coordinates[tracker_id].append(y)
+                    for tracker_id, [x, y] in zip(tracks.tracker_id, points):
+                        coordinates[tracker_id].append([frame_number, x, y])
                         if len(coordinates[tracker_id]) < source_info.fps / 2:
                             object_labels.append(f"#{tracker_id}")
                         else:
-                            coordinate_start = coordinates[tracker_id][-1]
-                            coordinate_end = coordinates[tracker_id][0]
-                            distance = abs(coordinate_start - coordinate_end)
-                            time_diff = len(coordinates[tracker_id]) / source_info.fps
+                            t_0, x_0, y_0 = coordinates[tracker_id][0]
+                            t_1, x_1, y_1 = coordinates[tracker_id][-1]
+
+                            distance = abs(np.sqrt((y_1-y_0)**2 + (x_1-x_0)**2))
+                            time_diff = (t_1 - t_0) / source_info.fps
+
                             speed = distance / time_diff * 3.6
                             object_labels.append(f"#{tracker_id} {int(speed)} Km/h")
-
-                    # object_labels = [f"x: {x}, y: {y}" for [x,y] in points]
 
                     annotated_image = label_annotator.annotate(
                         scene=annotated_image,
@@ -243,11 +243,11 @@ def main():
                     if SAVE_VIDEO:
                         if isinstance(video_writer, cv2.VideoWriter):
                             video_writer.release()
-                        video_writer = cv2.VideoWriter(f"{video_path}.avi", cv2.VideoWriter_fourcc(*CODEC), source_info.fps, (source_info.width, source_info.height))
+                        video_writer = cv2.VideoWriter(f"{video_path}.mp4", cv2.VideoWriter_fourcc(*CODEC), source_info.fps, (source_info.width, source_info.height))
                     if SAVE_SOURCE:
                         if isinstance(video_source_writer, cv2.VideoWriter):
                             video_source_writer.release()
-                        video_source_writer = cv2.VideoWriter(f"{video_path}_source.avi", cv2.VideoWriter_fourcc(*CODEC), source_info.fps, (source_info.width, source_info.height))
+                        video_source_writer = cv2.VideoWriter(f"{video_path}_source.mp4", cv2.VideoWriter_fourcc(*CODEC), source_info.fps, (source_info.width, source_info.height))
                 if SAVE_VIDEO: video_writer.write(annotated_image)
                 if SAVE_SOURCE: video_source_writer.write(image)
 
