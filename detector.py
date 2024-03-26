@@ -96,7 +96,7 @@ class ObjectDetection:
             color=(0, 0, 0),
             thickness=2 )
 
-    def draw(self, image, results, detections):
+    def plot(self, image, results, detections):
         object_labels = [f"{results.names[class_id]} {tracker_id or ''} ({score:.2f})" for _, _, score, class_id, tracker_id, _ in detections]
 
         image = self.label_annotator.annotate(
@@ -150,7 +150,7 @@ class ObjectDetection:
             results = self.predict(image) if self.mode == 'predict' else self.track(image)
             detections = sv.Detections.from_ultralytics(results)
             
-            image = self.draw(image, results, detections)
+            image = self.plot(image, results, detections)
 
             self.display_fps(image)
             
