@@ -36,12 +36,18 @@ def white(text: str) -> str:
 # Funciones
 # ---------
 def print_video_info(source: str, video_info: VideoInfo):
-    text_length = 20 + max(len(Path(source).name) , len(f"{video_info.width} x {video_info.height}"))
+    if source == 0:
+        source_name = "Webcam"
+    elif source.lower().startswith('rtsp://'):
+        source_name = "RSTP Stream"
+    else:
+        source_name = Path(source).name
+    text_length = 20 + max(len(source_name) , len(f"{video_info.width} x {video_info.height}"))
     
     # Print video information
     print(f"\n{red('*'*text_length)}")
     print(f"{green('Source Information'):^{text_length+9}}")
-    print(f"{bold('Source'):<29}{Path(source).name}") if not source.lower().startswith('rtsp://') else None
+    print(f"{bold('Source'):<29}{source_name}")
     print(f"{bold('Size'):<29}{video_info.width} x {video_info.height}")
     print(f"{bold('Total Frames'):<29}{video_info.total_frames}") if video_info.total_frames is not None else None
     print(f"{bold('Frames Per Second'):<29}{video_info.fps:.2f}")
