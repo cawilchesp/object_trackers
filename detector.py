@@ -24,8 +24,16 @@ class ObjectDetection:
             source,
             output,
             weights: str = "yolov8n",
-            mode: str = 'predict'
+            mode: str = 'predict',
+            labels: bool = True,
+            boxes: bool = True,
+            tracks: bool = True,
+            show_fps: bool = True,
+            image_size: int = 640,
+            confidence: float = 0.5,
+            class_filter: list[int] = None,
         ):
+
         # Step count
         self.step_count = 0
         
@@ -35,43 +43,53 @@ class ObjectDetection:
         # model information
         self.weights = weights
         self.model = YOLO(f"weights/{self.weights}.pt")
+        self.mode = mode
+        self.class_filter = class_filter
+        self.image_size = image_size
+        self.confidence = confidence
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         step_message(self.process_step(), f'{self.weights.upper()} Model Initialized')
 
         # visual information
-        self.annotator = None
         self.start_time = 0
         self.end_time = 0
-
-        # device information
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-        # inference mode
-        self.mode = mode
 
         # output
         self.output = output
 
         # Annotators
+        self.labels = labels
+        self.boxes = boxes
+        self.tracks = tracks
         self.label_annotator = None
         self.bounding_box_annotator = None
         self.mask_annotator = None
         self.trace_annotator = None
         self.heatmap_annotator = None
+        self.show_fps = show_fps
 
 
-    def predict(self, im0):
+    def predict(self, image):
         results = self.model(
-            source=im0,
+            source=image,
             device=self.device,
+            classes=self.class_filter,
+            imgsz=self.image_size,
+            conf=self.confidence,
             verbose=False )[0]
+
         return results
     
-    def track(self, im0):
+    def track(self, image):
         results = self.model.track(
-            source=im0,
+            source=image,
             device=self.device,
             persist=True,
+            classes=self.class_filter,
+            imgsz=self.image_size,
+            conf=self.confidence,
             verbose=False )[0]
+
         return results
     
     def display_fps(self, image):
@@ -79,11 +97,12 @@ class ObjectDetection:
         fps = 1 / np.round(self.end_time - self.start_time, 2)
         text = f'FPS: {int(fps)}'
         text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
-
+        
         cv2.rectangle(
             img=image,
             pt1=(0, 0),
-            pt2=(text_size[0] + 10, text_size[1] + 10),
+            pt2=(text_size[0] + 10,
+            text_size[1] + 10),
             color=(255, 255, 255),
             thickness=-1 )
         
@@ -99,18 +118,21 @@ class ObjectDetection:
     def plot(self, image, results, detections):
         object_labels = [f"{results.names[class_id]} {tracker_id or ''} ({score:.2f})" for _, _, score, class_id, tracker_id, _ in detections]
 
-        image = self.label_annotator.annotate(
-            scene=image,
-            detections=detections,
-            labels=object_labels )
+        if self.labels:
+            image = self.label_annotator.annotate(
+                scene=image,
+                detections=detections,
+                labels=object_labels )
 
-        image = self.bounding_box_annotator.annotate(
-            scene=image,
-            detections=detections )
+        if self.boxes:
+            image = self.bounding_box_annotator.annotate(
+                scene=image,
+                detections=detections )
         
-        image = self.trace_annotator.annotate(
-            scene=image,
-            detections=detections )
+        if self.tracks:
+            image = self.trace_annotator.annotate(
+                scene=image,
+                detections=detections )
         
         return image
 
@@ -152,12 +174,12 @@ class ObjectDetection:
             
             image = self.plot(image, results, detections)
 
-            self.display_fps(image)
+            if self.show_fps: self.display_fps(image)
             
             frame_count += 1
             
             # Show results
-            cv2.imshow('YOLOv8 Detection', image)
+            cv2.imshow(f'{self.weights.upper()} Detection', image)
             if cv2.waitKey(1) & 0xFF == 27:
                 break
 
