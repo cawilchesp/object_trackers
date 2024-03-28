@@ -22,7 +22,7 @@ class ObjectDetection:
     def __init__(
             self,
             source,
-            output,
+            output: str = None,
             weights: str = "yolov8n",
             mode: str = 'predict',
             labels: bool = True,
@@ -61,11 +61,6 @@ class ObjectDetection:
         self.labels = labels
         self.boxes = boxes
         self.tracks = tracks
-        self.label_annotator = None
-        self.bounding_box_annotator = None
-        self.mask_annotator = None
-        self.trace_annotator = None
-        self.heatmap_annotator = None
         self.show_fps = show_fps
 
 
@@ -116,9 +111,8 @@ class ObjectDetection:
             thickness=2 )
 
     def plot(self, image, results, detections):
-        object_labels = [f"{results.names[class_id]} {tracker_id or ''} ({score:.2f})" for _, _, score, class_id, tracker_id, _ in detections]
-
         if self.labels:
+            object_labels = [f"{results.names[class_id]} {tracker_id or ''} ({score:.2f})" for _, _, score, class_id, tracker_id, _ in detections]
             image = self.label_annotator.annotate(
                 scene=image,
                 detections=detections,
@@ -162,26 +156,44 @@ class ObjectDetection:
         self.trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=50, thickness=self.line_thickness)
         self.heatmap_annotator = sv.HeatMapAnnotator()
 
+        # Saving
+        video_sink = sv.VideoSink(target_path=f"{self.output}.avi", video_info=source_info, codec="h264")
+        csv_sink = sv.CSVSink(file_name=f"{self.output}.csv")
+
         frame_count = 0
-        while cap.isOpened():
-            self.start_time = time()
 
-            ret, image = cap.read()
-            assert ret, "File closed or reached final frame"
+        with video_sink as v_sink, csv_sink as c_sink:
+            while cap.isOpened():
+                self.start_time = time()
 
-            results = self.predict(image) if self.mode == 'predict' else self.track(image)
-            detections = sv.Detections.from_ultralytics(results)
-            
-            image = self.plot(image, results, detections)
+                ret, image = cap.read()
+                assert ret, "File closed or reached final frame"
 
-            if self.show_fps: self.display_fps(image)
-            
-            frame_count += 1
-            
-            # Show results
-            cv2.imshow(f'{self.weights.upper()} Detection', image)
-            if cv2.waitKey(1) & 0xFF == 27:
-                break
+                results = self.predict(image) if self.mode == 'predict' else self.track(image)
+                detections = sv.Detections.from_ultralytics(results)
+                
+                image = self.plot(image, results, detections)
+
+                if self.show_fps: self.display_fps(image)
+                v_sink.write_frame(frame=image)
+                c_sink.append(detections, custom_data={
+                    'frame_number':frame_count,
+                    # 'class_name': ,
+                    # 'class_id': ,
+                    # 'x_min': ,
+                    # 'y_min': ,
+                    # 'x_max': ,
+                    # 'y_max': ,
+                    # 'confidence': ,
+                    # 'tracker_id': ,
+                    })
+                
+                frame_count += 1
+                
+                # Show results
+                cv2.imshow(f'{self.weights.upper()} Detection', image)
+                if cv2.waitKey(1) & 0xFF == 27:
+                    break
 
         cap.release()
         cv2.destroyAllWindows()
