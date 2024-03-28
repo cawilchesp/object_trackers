@@ -12,7 +12,7 @@ from pathlib import Path
 
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.write_csv import output_data_list, write_csv
-from tools.video_info import VideoInfo, from_video_path, from_camera
+from tools.video_info import from_video_path, from_camera
 
 # For debugging
 from icecream import ic
@@ -27,11 +27,15 @@ class ObjectDetection:
             mode: str = 'predict',
             labels: bool = True,
             boxes: bool = True,
-            tracks: bool = True,
+            tracks: bool = False,
+            masks: bool = False,
+            heatmap: bool = False,
             show_fps: bool = True,
             image_size: int = 640,
             confidence: float = 0.5,
             class_filter: list[int] = None,
+            show_output: bool = True,
+
         ):
 
         # Step count
@@ -53,6 +57,7 @@ class ObjectDetection:
         # visual information
         self.start_time = 0
         self.end_time = 0
+        self.show_output = show_output
 
         # output
         self.output = output
@@ -61,6 +66,8 @@ class ObjectDetection:
         self.labels = labels
         self.boxes = boxes
         self.tracks = tracks
+        self.masks = masks
+        self.heatmap = heatmap
         self.show_fps = show_fps
 
 
@@ -71,6 +78,8 @@ class ObjectDetection:
             classes=self.class_filter,
             imgsz=self.image_size,
             conf=self.confidence,
+            agnostic_nms=True,
+            retina_masks=True,
             verbose=False )[0]
 
         return results
@@ -83,6 +92,8 @@ class ObjectDetection:
             classes=self.class_filter,
             imgsz=self.image_size,
             conf=self.confidence,
+            agnostic_nms=True,
+            retina_masks=True,
             verbose=False )[0]
 
         return results
@@ -127,6 +138,16 @@ class ObjectDetection:
             image = self.trace_annotator.annotate(
                 scene=image,
                 detections=detections )
+            
+        if self.masks:
+            image = self.mask_annotator.annotate(
+                scene=image,
+                detections=detections )
+            
+        if self.heatmap:
+            image = self.heatmap_annotator.annotate(
+                scene=image,
+                detections=detections )
         
         return image
 
@@ -162,7 +183,7 @@ class ObjectDetection:
 
         frame_count = 0
 
-        with video_sink as v_sink, csv_sink as c_sink:
+        with video_sink, csv_sink:
             while cap.isOpened():
                 self.start_time = time()
 
@@ -175,25 +196,16 @@ class ObjectDetection:
                 image = self.plot(image, results, detections)
 
                 if self.show_fps: self.display_fps(image)
-                v_sink.write_frame(frame=image)
-                c_sink.append(detections, custom_data={
-                    'frame_number':frame_count,
-                    # 'class_name': ,
-                    # 'class_id': ,
-                    # 'x_min': ,
-                    # 'y_min': ,
-                    # 'x_max': ,
-                    # 'y_max': ,
-                    # 'confidence': ,
-                    # 'tracker_id': ,
-                    })
+                video_sink.write_frame(frame=image)
+                csv_sink.append(detections, custom_data={'frame_number':frame_count})
                 
                 frame_count += 1
                 
                 # Show results
-                cv2.imshow(f'{self.weights.upper()} Detection', image)
-                if cv2.waitKey(1) & 0xFF == 27:
-                    break
+                if self.show_output:
+                    cv2.imshow(f'{self.weights.upper()} Detection', image)
+                    if cv2.waitKey(1) & 0xFF == 27:
+                        break
 
         cap.release()
         cv2.destroyAllWindows()
