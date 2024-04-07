@@ -8,6 +8,8 @@ MODEL:
 INPUT:
   FOLDER: 'D:/Data/CCT_Drones'
   SOURCE: 'P2_50_100_CR.mp4'
+  # FOLDER: 'D:/Data'
+  # SOURCE: 'C3_detenido.mp4'
 DETECTION:
   CLASS_FILTER: [0,1,2,3,4,5,6]
   IMAGE_SIZE: 640
