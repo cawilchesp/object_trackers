@@ -56,7 +56,7 @@ def main():
     t_start = time.time()
     results_data = []
     frame_number = 0
-    with sv.VideoSink(target_path=f"{target}.avi", video_info=video_info, codec="h264") as sink:
+    with sv.VideoSink(target_path=f"{target}.mp4", video_info=video_info, codec="mp4v") as sink:
         for image in tqdm(frame_generator, total=video_info.total_frames, unit='frames'):
             annotated_image = image.copy()
 
