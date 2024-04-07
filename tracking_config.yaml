@@ -1,9 +1,8 @@
 MODEL:
   YOLOV8_FOLDER: 'D:/Data/models/yolov8'
-  YOLOV8_WEIGHTS: 'yolov8x'
+  YOLOV8_WEIGHTS: 'yolov8x_dr_v4'
   YOLOV9_FOLDER: 'D:/Data/models/yolov9'
   YOLOV9_WEIGHTS: 'yolov9e'
-  NAS_WEIGHTS: 'yolo_nas_m'
   RTDETR_FOLDER: 'D:/Data/models/rt-detr'
   RTDETR_WEIGHTS: 'rtdetr-l'
 INPUT:
@@ -11,9 +10,8 @@ INPUT:
   SOURCE: 'P2_50_100_CR.mp4'
 DETECTION:
   CLASS_FILTER: [0,1,2,3,4,5,6]
-  CONFIDENCE: 0.5
   IMAGE_SIZE: 640
-TRACKING: True
+  CONFIDENCE: 0.5
 DRAW:
   LABELS: True
   BOXES: True
