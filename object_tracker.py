@@ -1,4 +1,4 @@
-from ultralytics import YOLO
+from ultralytics import YOLO, RTDETR
 import supervision as sv
 
 import imutils
@@ -13,7 +13,6 @@ from tqdm import tqdm
 from pathlib import Path
 
 from tools.print_info import print_video_info, print_progress, step_message
-from tools.write_csv import output_data_list, write_csv
 from tools.video_info import from_video_path
 from tools.csv_sink import CSVSink
 
@@ -47,9 +46,13 @@ def main(
         save_video: bool
     ) -> None:
 
-    # Initialize YOLOv8 Model
-    model = YOLO(weights)
-    step_message(process_step(), 'Model Initialized')
+    # Initialize Model
+    if 'v8' in weights or 'v9' in weights:
+        model = YOLO(weights)
+        step_message(process_step(), 'YOLO Model Initialized')
+    elif 'rtdetr' in weights:
+        model = RTDETR(weights)
+        step_message(process_step(), 'RT-DETR Model Initialized')
 
     # Inicializar captura de video
     cap = cv2.VideoCapture(source)
@@ -107,9 +110,10 @@ def main(
                     detections=detections )
                 
                 # Draw tracks
-                annotated_image = trace_annotator.annotate(
-                    scene=annotated_image,
-                    detections=detections )
+                if detections.tracker_id is not None:
+                    annotated_image = trace_annotator.annotate(
+                        scene=annotated_image,
+                        detections=detections )
                 
             if save_video: video_sink.write_frame(frame=annotated_image)
             if save_csv: csv_sink.append(detections, custom_data={'frame_number': frame_number})
@@ -122,7 +126,7 @@ def main(
                     break
 
     t_frame_end = time_synchronized()
-    print(f"Time: {t_frame_end - t_frame_start} s / frames: {frame_number}")
+    step_message('Final', f"Total Time: {(t_frame_end - t_frame_start):.2f} s")
     cv2.destroyAllWindows()
     fvs.stop()
 
@@ -135,6 +139,10 @@ if __name__ == "__main__":
     # Get configuration parameters
     MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
     MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
+    # MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
+    # MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
+    # MODEL_FOLDER = config['MODEL']['RTDETR_FOLDER']
+    # MODEL_WEIGHTS = config['MODEL']['RTDETR_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
     SOURCE = config['INPUT']['SOURCE']
     CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
