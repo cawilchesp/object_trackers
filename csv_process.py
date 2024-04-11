@@ -51,22 +51,22 @@ ID_CLASSES = {
 #     7: np.array([[385,64], [406,64], [635,338], [542,338]], np.int32).reshape((-1, 1, 2))
 # }
 
-# 4102
-ZONE_ANALYSIS = np.array([[251,65], [559,65], [665,403], [0,403]])
-TARGET_WIDTH = 1500
-TARGET_HEIGHT = 4000
+# # 4102
+# ZONE_ANALYSIS = np.array([[251,65], [559,65], [665,403], [0,403]])
+# TARGET_WIDTH = 1500
+# TARGET_HEIGHT = 4000
 
-csv_data.loc[(csv_data['x_transformed'] > 0) & (csv_data['x_transformed'] < 317) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 1
-csv_data.loc[(csv_data['x_transformed'] > 317) & (csv_data['x_transformed'] < 647) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 2
-csv_data.loc[(csv_data['x_transformed'] > 647) & (csv_data['x_transformed'] < 987) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 3
-csv_data.loc[(csv_data['x_transformed'] > 1367) & (csv_data['x_transformed'] < 1734) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 4
+# csv_data.loc[(csv_data['x_transformed'] > 0) & (csv_data['x_transformed'] < 317) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 1
+# csv_data.loc[(csv_data['x_transformed'] > 317) & (csv_data['x_transformed'] < 647) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 2
+# csv_data.loc[(csv_data['x_transformed'] > 647) & (csv_data['x_transformed'] < 987) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 3
+# csv_data.loc[(csv_data['x_transformed'] > 1367) & (csv_data['x_transformed'] < 1734) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 4
 
-LANES = {
-    1: np.array([[251,65], [323,65], [155,403], [0,403]], np.int32).reshape((-1, 1, 2)),
-    2: np.array([[323,65], [395,65], [311,403], [155,403]], np.int32).reshape((-1, 1, 2)),
-    3: np.array([[416,65], [487,65], [512,403], [356,403]], np.int32).reshape((-1, 1, 2)),
-    4: np.array([[487,65], [559,65], [665,403], [512,403]], np.int32).reshape((-1, 1, 2))
-}
+# LANES = {
+#     1: np.array([[251,65], [323,65], [155,403], [0,403]], np.int32).reshape((-1, 1, 2)),
+#     2: np.array([[323,65], [395,65], [311,403], [155,403]], np.int32).reshape((-1, 1, 2)),
+#     3: np.array([[416,65], [487,65], [512,403], [356,403]], np.int32).reshape((-1, 1, 2)),
+#     4: np.array([[487,65], [559,65], [665,403], [512,403]], np.int32).reshape((-1, 1, 2))
+# }
 
 
 
@@ -110,9 +110,9 @@ def process_csv_file(camera_id, day, hour):
     csv_data['center_y'] = csv_data['y'] + csv_data['h']
 
     # Space transformation
-    ZONE_ANALYSIS = np.array([[279,64], [406,64], [635,338], [0,338]])
-    TARGET_WIDTH = 2500
-    TARGET_HEIGHT = 9000
+    ZONE_ANALYSIS = np.array([[251,65], [559,65], [665,403], [0,403]])
+    TARGET_WIDTH = 1500
+    TARGET_HEIGHT = 4000
     TARGET = np.array( [ [0, 0], [TARGET_WIDTH - 1, 0], [TARGET_WIDTH - 1, TARGET_HEIGHT - 1], [0, TARGET_HEIGHT - 1] ] )
     view_transformer = ViewTransformer(source=ZONE_ANALYSIS, target=TARGET)
 
@@ -122,13 +122,10 @@ def process_csv_file(camera_id, day, hour):
     csv_data = pd.concat([csv_data, points_transformed], axis = 1)
 
     # Lane
-    csv_data.loc[(csv_data['x_transformed'] > -331) & (csv_data['x_transformed'] < 0) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 1
-    csv_data.loc[(csv_data['x_transformed'] > 0) & (csv_data['x_transformed'] < 317) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 2
-    csv_data.loc[(csv_data['x_transformed'] > 317) & (csv_data['x_transformed'] < 647) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 3
-    csv_data.loc[(csv_data['x_transformed'] > 647) & (csv_data['x_transformed'] < 987) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 4
-    csv_data.loc[(csv_data['x_transformed'] > 1367) & (csv_data['x_transformed'] < 1734) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 5
-    csv_data.loc[(csv_data['x_transformed'] > 1734) & (csv_data['x_transformed'] < 2118) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 6
-    csv_data.loc[(csv_data['x_transformed'] > 2118) & (csv_data['x_transformed'] < 2496) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 7
+    csv_data.loc[(csv_data['x_transformed'] > 0) & (csv_data['x_transformed'] < 350), 'lane'] = 1     # & (csv_data['y_transformed'] > 100) & (csv_data['y_transformed'] < 3900), 'lane'] = 1
+    csv_data.loc[(csv_data['x_transformed'] > 350) & (csv_data['x_transformed'] < 700), 'lane'] = 2     # & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 2
+    csv_data.loc[(csv_data['x_transformed'] > 800) & (csv_data['x_transformed'] < 1150), 'lane'] = 3     # & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 3
+    csv_data.loc[(csv_data['x_transformed'] > 1150) & (csv_data['x_transformed'] < 1500), 'lane'] = 4     # & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 4
 
     for object_number, object in enumerate(object_id_list):
         print(f"{object_number}: {object}")
@@ -209,45 +206,33 @@ def analysis(camera_id, day, hour):
         1: np.zeros([480, 704, 3], np.uint8),
         2: np.zeros([480, 704, 3], np.uint8),
         3: np.zeros([480, 704, 3], np.uint8),
-        4: np.zeros([480, 704, 3], np.uint8),
-        5: np.zeros([480, 704, 3], np.uint8),
-        6: np.zeros([480, 704, 3], np.uint8),
-        7: np.zeros([480, 704, 3], np.uint8)
+        4: np.zeros([480, 704, 3], np.uint8)
     }
 
     LANES = {
-        1: np.array([[214,101], [241,101], [0,338], [0,276]], np.int32).reshape((-1, 1, 2)),
-        2: np.array([[279,64], [298,64], [80,338], [0,338]], np.int32).reshape((-1, 1, 2)),
-        3: np.array([[298,64], [316,64], [163,338], [80,338]], np.int32).reshape((-1, 1, 2)),
-        4: np.array([[316,64], [335,64], [249,338], [163,338]], np.int32).reshape((-1, 1, 2)),
-        5: np.array([[344,64], [364,64], [444,338], [352,338]], np.int32).reshape((-1, 1, 2)),
-        6: np.array([[364,64], [385,64], [542,338], [444,338]], np.int32).reshape((-1, 1, 2)),
-        7: np.array([[385,64], [406,64], [635,338], [542,338]], np.int32).reshape((-1, 1, 2))
+        1: np.array([[251,65], [323,65], [155,403], [0,403]], np.int32).reshape((-1, 1, 2)),
+        2: np.array([[323,65], [395,65], [311,403], [155,403]], np.int32).reshape((-1, 1, 2)),
+        3: np.array([[416,65], [487,65], [512,403], [356,403]], np.int32).reshape((-1, 1, 2)),
+        4: np.array([[487,65], [559,65], [665,403], [512,403]], np.int32).reshape((-1, 1, 2))
     }
 
     count_lanes = {
         1: 0,
         2: 0,
         3: 0,
-        4: 0,
-        5: 0,
-        6: 0,
-        7: 0
+        4: 0
     }
 
     speed_list_lanes = {
         1: [],
         2: [],
         3: [],
-        4: [],
-        5: [],
-        6: [],
-        7: []
+        4: []
     }
 
     roadway_lanes = {
-        'left': [1, 2, 3, 4],
-        'right': [5, 6, 7]
+        'left': [1, 2],
+        'right': [3, 4]
     }
 
     speed_list_roadway = {
@@ -346,10 +331,7 @@ def analysis(camera_id, day, hour):
         1: None,
         2: None,
         3: None,
-        4: None,
-        5: None,
-        6: None,
-        7: None
+        4: None
     }
     for lane, speed_lane in speed_list_lanes.items():
         if len(speed_lane) > 0:
@@ -363,9 +345,6 @@ def analysis(camera_id, day, hour):
     cv2.imshow("Resultado 2", trajectory_lanes[2])
     cv2.imshow("Resultado 3", trajectory_lanes[3])
     cv2.imshow("Resultado 4", trajectory_lanes[4])
-    cv2.imshow("Resultado 5", trajectory_lanes[5])
-    cv2.imshow("Resultado 6", trajectory_lanes[6])
-    cv2.imshow("Resultado 7", trajectory_lanes[7])
     cv2.waitKey(0)
 
     speed_roadways = {
@@ -381,58 +360,58 @@ def analysis(camera_id, day, hour):
 
 
 
-def video_reconstruction():
-    # Anotatores
-    line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(704, 480)) * 0.5)
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(704, 480)) * 0.5
+# def video_reconstruction():
+#     # Anotatores
+#     line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(704, 480)) * 0.5)
+#     text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(704, 480)) * 0.5
 
-    label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
-    trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=50, thickness=line_thickness)
+#     label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
+#     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
+#     trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=50, thickness=line_thickness)
 
-    max_frame = csv_data['frame'].max()
-    frame_number = 0
-    while frame_number < max_frame:
-        annotated_image = np.zeros([480, 704, 3], np.uint8)
-        annotated_image = sv.draw_polygon(scene=annotated_image, polygon=ZONE_ANALYSIS, color=sv.Color.RED)
+#     max_frame = csv_data['frame'].max()
+#     frame_number = 0
+#     while frame_number < max_frame:
+#         annotated_image = np.zeros([480, 704, 3], np.uint8)
+#         annotated_image = sv.draw_polygon(scene=annotated_image, polygon=ZONE_ANALYSIS, color=sv.Color.RED)
         
-        detections_dataframe = csv_data[csv_data['frame'] == frame_number].copy()
+#         detections_dataframe = csv_data[csv_data['frame'] == frame_number].copy()
         
-        detections = sv.Detections(
-            xyxy=detections_dataframe[['x', 'y', 'x2', 'y2']].to_numpy().astype(np.float32),
-            mask=None,
-            confidence=detections_dataframe[['score']].to_numpy().ravel(),
-            class_id=detections_dataframe['class_id'].to_numpy().ravel(),
-            tracker_id=detections_dataframe['id'].to_numpy().ravel(),
-            data={'class_name': detections_dataframe['class'].to_numpy().astype('<U10')}
-        )
+#         detections = sv.Detections(
+#             xyxy=detections_dataframe[['x', 'y', 'x2', 'y2']].to_numpy().astype(np.float32),
+#             mask=None,
+#             confidence=detections_dataframe[['score']].to_numpy().ravel(),
+#             class_id=detections_dataframe['class_id'].to_numpy().ravel(),
+#             tracker_id=detections_dataframe['id'].to_numpy().ravel(),
+#             data={'class_name': detections_dataframe['class'].to_numpy().astype('<U10')}
+#         )
 
-        # Dibujar etiquetas
-        object_labels = [f"{data['class_name']} {tracker_id} ({score:.2f})" for _, _, score, _, tracker_id, data in detections]
-        annotated_image = label_annotator.annotate(
-            scene=annotated_image,
-            detections=detections,
-            labels=object_labels )
+#         # Dibujar etiquetas
+#         object_labels = [f"{data['class_name']} {tracker_id} ({score:.2f})" for _, _, score, _, tracker_id, data in detections]
+#         annotated_image = label_annotator.annotate(
+#             scene=annotated_image,
+#             detections=detections,
+#             labels=object_labels )
         
-        # Draw boxes
-        annotated_image = bounding_box_annotator.annotate(
-            scene=annotated_image,
-            detections=detections )
+#         # Draw boxes
+#         annotated_image = bounding_box_annotator.annotate(
+#             scene=annotated_image,
+#             detections=detections )
         
-        # Draw tracks
-        if detections.tracker_id is not None:
-            annotated_image = trace_annotator.annotate(
-                scene=annotated_image,
-                detections=detections )
+#         # Draw tracks
+#         if detections.tracker_id is not None:
+#             annotated_image = trace_annotator.annotate(
+#                 scene=annotated_image,
+#                 detections=detections )
 
 
-        cv2.imshow("Resultado", annotated_image)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+#         cv2.imshow("Resultado", annotated_image)
+#         if cv2.waitKey(1) & 0xFF == ord("q"):
+#             break
 
 
 def main():
-    camera_id = 7402
+    camera_id = 4102
     day = 'J'
     hour = 10
     
