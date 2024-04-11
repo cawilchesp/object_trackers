@@ -8,6 +8,8 @@ import cv2
 from tools.speed import ViewTransformer
 
 from icecream import ic
+
+
 COLORS = {
     'person': (255,0,0),
     'car': (0,170,0),
@@ -122,13 +124,89 @@ def process_csv_file(camera_id, day, hour):
     pd_object_dict.to_csv(f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}_processed.csv", index=False)
     pd_object_dict.to_json(f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}_processed.json")
     
+
 def analysis(camera_id, day, hour):
     # Load CSV data
     json_file = f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}_processed.json"
     json_data = pd.read_json(json_file)
     
     # Processing for counting
-    annotated_image = np.zeros([480, 704, 3], np.uint8)
+    trajectory_classes = {
+        'person': np.zeros([480, 704, 3], np.uint8),
+        'car': np.zeros([480, 704, 3], np.uint8),
+        'bicycle': np.zeros([480, 704, 3], np.uint8),
+        'motorbike': np.zeros([480, 704, 3], np.uint8),
+        'bus': np.zeros([480, 704, 3], np.uint8),
+        'truck': np.zeros([480, 704, 3], np.uint8)
+    }
+
+    count_classes = {
+        'person': 0,
+        'car': 0,
+        'bicycle': 0,
+        'motorbike': 0,
+        'bus': 0,
+        'truck': 0
+    }
+
+    speed_list_classes = {
+        'person': [],
+        'car': [],
+        'bicycle': [],
+        'motorbike': [],
+        'bus': [],
+        'truck': []
+    }
+
+    trajectory_lanes = {
+        1: np.zeros([480, 704, 3], np.uint8),
+        2: np.zeros([480, 704, 3], np.uint8),
+        3: np.zeros([480, 704, 3], np.uint8),
+        4: np.zeros([480, 704, 3], np.uint8),
+        5: np.zeros([480, 704, 3], np.uint8),
+        6: np.zeros([480, 704, 3], np.uint8),
+        7: np.zeros([480, 704, 3], np.uint8)
+    }
+
+    LANES = {
+        1: np.array([[214,101], [241,101], [0,338], [0,276]], np.int32).reshape((-1, 1, 2)),
+        2: np.array([[279,64], [298,64], [80,338], [0,338]], np.int32).reshape((-1, 1, 2)),
+        3: np.array([[298,64], [316,64], [163,338], [80,338]], np.int32).reshape((-1, 1, 2)),
+        4: np.array([[316,64], [335,64], [249,338], [163,338]], np.int32).reshape((-1, 1, 2)),
+        5: np.array([[344,64], [364,64], [444,338], [352,338]], np.int32).reshape((-1, 1, 2)),
+        6: np.array([[364,64], [385,64], [542,338], [444,338]], np.int32).reshape((-1, 1, 2)),
+        7: np.array([[385,64], [406,64], [635,338], [542,338]], np.int32).reshape((-1, 1, 2))
+    }
+
+    count_lanes = {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0
+    }
+
+    speed_list_lanes = {
+        1: [],
+        2: [],
+        3: [],
+        4: [],
+        5: [],
+        6: [],
+        7: []
+    }
+
+    roadway_lanes = {
+        'left': [1, 2, 3, 4],
+        'right': [5, 6, 7]
+    }
+
+    speed_list_roadway = {
+        'left': [],
+        'right': []
+    }
 
     for index, object in json_data.iterrows():
         print(f"Objeto: {index}")
@@ -139,23 +217,115 @@ def analysis(camera_id, day, hour):
         object_speed = object['speed']
         object_lane = object['lane']
 
-        if object_class == 'truck':
-            object_trajectory = np.array(object['trajectory'], np.int32)
-            object_trajectory = object_trajectory.reshape((-1, 1, 2))
-            cv2.polylines(
-                img=annotated_image,
-                pts=[object_trajectory],
-                isClosed=False,
-                color=COLORS[object_class],
-                thickness=1,
-                lineType=cv2.LINE_AA )
+        object_trajectory = np.array(object['trajectory'], np.int32)
+        object_trajectory = object_trajectory.reshape((-1, 1, 2))
         
-    ZONE_ANALYSIS = np.array([[279,64], [406,64], [635,338], [0,338]])
-    annotated_image = sv.draw_polygon(scene=annotated_image, polygon=ZONE_ANALYSIS, color=sv.Color.RED)
+        cv2.polylines(
+            img=trajectory_classes[object_class],
+            pts=[object_trajectory],
+            isClosed=False,
+            color=COLORS[object_class],
+            thickness=1,
+            lineType=cv2.LINE_AA )
+        
+        count_classes[object_class] += 1
+        speed_list_classes[object_class].append(object_speed)
 
-    cv2.imshow("Resultado", annotated_image)
+        cv2.polylines(
+            img=trajectory_lanes[object_lane],
+            pts=[object_trajectory],
+            isClosed=False,
+            color=COLORS[object_class],
+            thickness=1,
+            lineType=cv2.LINE_AA )
+        
+        count_lanes[object_lane] += 1
+        speed_list_lanes[object_lane].append(object_speed)
+        if object_lane in roadway_lanes['left']:
+            speed_list_roadway['left'].append(object_speed)
+        elif object_lane in roadway_lanes['right']:
+            speed_list_roadway['right'].append(object_speed)
+
+    for image in trajectory_classes.values():
+        for lane in LANES.values():
+            cv2.polylines(
+                img=image,
+                pts=[lane],
+                isClosed=True,
+                color=(0, 0, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA )
+            
+    for image in trajectory_lanes.values():
+        for lane in LANES.values():
+            cv2.polylines(
+                img=image,
+                pts=[lane],
+                isClosed=True,
+                color=(0, 0, 255),
+                thickness=2,
+                lineType=cv2.LINE_AA )
+            
+    ic(count_classes)
+
+    speed_classes = {
+        'person': None,
+        'car': None,
+        'bicycle': None,
+        'motorbike': None,
+        'bus': None,
+        'truck': None
+    }
+    for class_name, speed_class in speed_list_classes.items():
+        if len(speed_class) > 0:
+            speed_classes[class_name] = (min(speed_class), sum(speed_class)/len(speed_class), max(speed_class))
+    ic(speed_classes)
+
+    cv2.imshow("Resultado person", trajectory_classes['person'])
+    cv2.imshow("Resultado car", trajectory_classes['car'])
+    cv2.imshow("Resultado bicycle", trajectory_classes['bicycle'])
+    cv2.imshow("Resultado motorbike", trajectory_classes['motorbike'])
+    cv2.imshow("Resultado bus", trajectory_classes['bus'])
+    cv2.imshow("Resultado truck", trajectory_classes['truck'])
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
+    ic(count_lanes)
+
+    speed_lanes = {
+        1: None,
+        2: None,
+        3: None,
+        4: None,
+        5: None,
+        6: None,
+        7: None
+    }
+    for lane, speed_lane in speed_list_lanes.items():
+        if len(speed_lane) > 0:
+            speed_lanes[lane] = (min(speed_lane), sum(speed_lane)/len(speed_lane), max(speed_lane))
+    ic(speed_lanes)
+
+    cv2.imshow("Resultado 1", trajectory_lanes[1])
+    cv2.imshow("Resultado 2", trajectory_lanes[2])
+    cv2.imshow("Resultado 3", trajectory_lanes[3])
+    cv2.imshow("Resultado 4", trajectory_lanes[4])
+    cv2.imshow("Resultado 5", trajectory_lanes[5])
+    cv2.imshow("Resultado 6", trajectory_lanes[6])
+    cv2.imshow("Resultado 7", trajectory_lanes[7])
+    cv2.waitKey(0)
+
+    speed_roadways = {
+        'left': None,
+        'right': None,
+    }
+    for roadway, speed_roadway in speed_list_roadway.items():
+        if len(speed_roadway) > 0:
+            speed_roadways[roadway] = (min(speed_roadway), sum(speed_roadway)/len(speed_roadway), max(speed_roadway))
+    ic(speed_roadways)
+
+    cv2.destroyAllWindows()
+
 
 
 def video_reconstruction():
@@ -166,7 +336,7 @@ def video_reconstruction():
     label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
     trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=50, thickness=line_thickness)
-    
+
     max_frame = csv_data['frame'].max()
     frame_number = 0
     while frame_number < max_frame:
@@ -203,9 +373,9 @@ def video_reconstruction():
                 detections=detections )
 
 
-    cv2.imshow("Resultado", annotated_image)
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+        cv2.imshow("Resultado", annotated_image)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
 
 
 def main():
@@ -214,7 +384,7 @@ def main():
     hour = 10
     
     # combine_csv_files(camera_id, day, hour)
-    process_csv_file(camera_id, day, hour)
+    # process_csv_file(camera_id, day, hour)
     analysis(camera_id, day, hour)
 
 
