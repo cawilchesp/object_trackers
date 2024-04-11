@@ -28,6 +28,51 @@ ID_CLASSES = {
     'truck': 5 
 }
 
+# # 7402
+# ZONE_ANALYSIS = np.array([[279,64], [406,64], [635,338], [0,338]])
+# TARGET_WIDTH = 2500
+# TARGET_HEIGHT = 9000
+
+# csv_data.loc[(csv_data['x_transformed'] > -331) & (csv_data['x_transformed'] < 0) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 1
+# csv_data.loc[(csv_data['x_transformed'] > 0) & (csv_data['x_transformed'] < 317) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 2
+# csv_data.loc[(csv_data['x_transformed'] > 317) & (csv_data['x_transformed'] < 647) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 3
+# csv_data.loc[(csv_data['x_transformed'] > 647) & (csv_data['x_transformed'] < 987) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 4
+# csv_data.loc[(csv_data['x_transformed'] > 1367) & (csv_data['x_transformed'] < 1734) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 5
+# csv_data.loc[(csv_data['x_transformed'] > 1734) & (csv_data['x_transformed'] < 2118) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 6
+# csv_data.loc[(csv_data['x_transformed'] > 2118) & (csv_data['x_transformed'] < 2496) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 7
+
+# LANES = {
+#     1: np.array([[214,101], [241,101], [0,338], [0,276]], np.int32).reshape((-1, 1, 2)),
+#     2: np.array([[279,64], [298,64], [80,338], [0,338]], np.int32).reshape((-1, 1, 2)),
+#     3: np.array([[298,64], [316,64], [163,338], [80,338]], np.int32).reshape((-1, 1, 2)),
+#     4: np.array([[316,64], [335,64], [249,338], [163,338]], np.int32).reshape((-1, 1, 2)),
+#     5: np.array([[344,64], [364,64], [444,338], [352,338]], np.int32).reshape((-1, 1, 2)),
+#     6: np.array([[364,64], [385,64], [542,338], [444,338]], np.int32).reshape((-1, 1, 2)),
+#     7: np.array([[385,64], [406,64], [635,338], [542,338]], np.int32).reshape((-1, 1, 2))
+# }
+
+# 4102
+ZONE_ANALYSIS = np.array([[251,65], [559,65], [665,403], [0,403]])
+TARGET_WIDTH = 1500
+TARGET_HEIGHT = 4000
+
+csv_data.loc[(csv_data['x_transformed'] > 0) & (csv_data['x_transformed'] < 317) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 1
+csv_data.loc[(csv_data['x_transformed'] > 317) & (csv_data['x_transformed'] < 647) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 2
+csv_data.loc[(csv_data['x_transformed'] > 647) & (csv_data['x_transformed'] < 987) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 3
+csv_data.loc[(csv_data['x_transformed'] > 1367) & (csv_data['x_transformed'] < 1734) & (csv_data['y_transformed'] > 3000) & (csv_data['y_transformed'] < 8500), 'lane'] = 4
+
+LANES = {
+    1: np.array([[251,65], [323,65], [155,403], [0,403]], np.int32).reshape((-1, 1, 2)),
+    2: np.array([[323,65], [395,65], [311,403], [155,403]], np.int32).reshape((-1, 1, 2)),
+    3: np.array([[416,65], [487,65], [512,403], [356,403]], np.int32).reshape((-1, 1, 2)),
+    4: np.array([[487,65], [559,65], [665,403], [512,403]], np.int32).reshape((-1, 1, 2))
+}
+
+
+
+
+
+
 def combine_csv_files(camera_id, day, hour):
     csv_path = f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}"
     csv_file_list = list(sorted(Path(csv_path).glob(f"C{camera_id}*.csv")))
@@ -392,7 +437,7 @@ def main():
     hour = 10
     
     # combine_csv_files(camera_id, day, hour)
-    # process_csv_file(camera_id, day, hour)
+    process_csv_file(camera_id, day, hour)
     analysis(camera_id, day, hour)
 
 
