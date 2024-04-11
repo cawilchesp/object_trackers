@@ -43,7 +43,8 @@ def combine_csv_files(camera_id, day, hour):
 
 def process_csv_file(camera_id, day, hour):
     # Load CSV data
-    csv_file = f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}.csv"
+    folder = f"D:/Data/Piloto_EDGE/Resultados/CCT_{camera_id}_{day}{hour}"
+    csv_file = f"{folder}/{camera_id}_{day}{hour}.csv"
     csv_data = pd.read_csv(csv_file, sep=',', names=['frame', 'id', 'class', 'x', 'y', 'w', 'h', 'score'], header=None, index_col=False)
     object_id_list = csv_data['id'].unique().astype(int)
     object_dict = {
@@ -121,13 +122,14 @@ def process_csv_file(camera_id, day, hour):
             object_dict['trajectory'].append(object_trajectory)
 
     pd_object_dict = pd.DataFrame(object_dict)
-    pd_object_dict.to_csv(f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}_processed.csv", index=False)
-    pd_object_dict.to_json(f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}_processed.json")
+    pd_object_dict.to_csv(f"{folder}/{camera_id}_{day}{hour}_processed.csv", index=False)
+    pd_object_dict.to_json(f"{folder}/{camera_id}_{day}{hour}_processed.json")
     
 
 def analysis(camera_id, day, hour):
     # Load CSV data
-    json_file = f"D:/Data/Piloto_EDGE/CCT_{camera_id}_{day}{hour}/{camera_id}_processed.json"
+    folder = f"D:/Data/Piloto_EDGE/Resultados/CCT_{camera_id}_{day}{hour}"
+    json_file = f"{folder}/{camera_id}_{day}{hour}_processed.json"
     json_data = pd.read_json(json_file)
     
     # Processing for counting
@@ -281,6 +283,9 @@ def analysis(camera_id, day, hour):
             speed_classes[class_name] = (min(speed_class), sum(speed_class)/len(speed_class), max(speed_class))
     ic(speed_classes)
 
+    for class_name, image in trajectory_classes.items():
+        cv2.imwrite(f"{folder}/{camera_id}_{day}{hour}_{class_name}.png", image)
+
     cv2.imshow("Resultado person", trajectory_classes['person'])
     cv2.imshow("Resultado car", trajectory_classes['car'])
     cv2.imshow("Resultado bicycle", trajectory_classes['bicycle'])
@@ -305,6 +310,9 @@ def analysis(camera_id, day, hour):
         if len(speed_lane) > 0:
             speed_lanes[lane] = (min(speed_lane), sum(speed_lane)/len(speed_lane), max(speed_lane))
     ic(speed_lanes)
+
+    for lane, image in trajectory_lanes.items():
+        cv2.imwrite(f"{folder}/{camera_id}_{day}{hour}_{lane}.png", image)
 
     cv2.imshow("Resultado 1", trajectory_lanes[1])
     cv2.imshow("Resultado 2", trajectory_lanes[2])
