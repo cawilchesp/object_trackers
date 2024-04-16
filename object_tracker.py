@@ -60,7 +60,7 @@ def main(
     source_info = from_video_path(cap)
     print_video_info(source, source_info)
     
-    # Anotatores
+    # Anotadores
     line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
     text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
 
