@@ -46,6 +46,13 @@ def main(
     if not cap.isOpened(): quit()
     source_info = from_video_path(cap)
     print_video_info(source, source_info)
+
+    if source_info.width > source_info.height:
+        scaled_width = 1280 if source_info.width > 1280 else source_info.width
+        k = int(scaled_width * source_info.height / source_info.width)
+        scaled_height = k if source_info.height > k else source_info.height
+    
+    
     cap.release()
     
     # Anotadores
@@ -111,7 +118,10 @@ def main(
             frame_number += 1
 
             if show_image:
-                cv2.imshow("Resultado", annotated_image)
+                
+                cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
+                cv2.imshow("Output", annotated_image)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
             fps.update()
