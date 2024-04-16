@@ -67,9 +67,9 @@ def print_progress(frame_number: int, total_frames: int):
     
     frame_text_length = (2 * len(str(total_frames))) + 3
     if frame_number == 0:
-        print(f"{percentage_title}{bold('Frame'):>{frame_text_length+9}}")
+        print(f"\n{percentage_title}{bold('Frame'):>{frame_text_length+9}}")
     print(f"\r{green(percentage)}{frame_progress:>{frame_text_length}}  ", end="", flush=True)
-
+    
 
 def print_times(frame_number: int, source_info: VideoInfo, progress_times: dict):
     total_frames = source_info.total_frames
@@ -93,7 +93,7 @@ def print_times(frame_number: int, source_info: VideoInfo, progress_times: dict)
         
     frame_text_length = (2 * len(str(total_frames))) + 3
     if frame_number == 0:
-        print(f"{percentage_title}{bold('Frame'):>{frame_text_length+9}}{bold('Capture'):>22}{bold('Inference'):>22}{bold('Detections'):>22}{bold('Tracks'):>22}{bold('Saving'):>22}{bold('Drawings'):>22}{bold('Files'):>22}{bold('Total'):>22}")
+        print(f"\n{percentage_title}{bold('Frame'):>{frame_text_length+9}}{bold('Capture'):>22}{bold('Inference'):>22}{bold('Detections'):>22}{bold('Tracks'):>22}{bold('Saving'):>22}{bold('Drawings'):>22}{bold('Files'):>22}{bold('Total'):>22}")
 
     print(
         f"{green(percentage)}"
@@ -111,4 +111,4 @@ def print_times(frame_number: int, source_info: VideoInfo, progress_times: dict)
 
 def step_message(step: str = None, message: str = None):
     step_text = green(f"[{step}]") if step != "Error" else red(f"[{step}]")
-    print(f"\n{step_text} {message} ✅")
+    print(f"{step_text} {message} ✅")
