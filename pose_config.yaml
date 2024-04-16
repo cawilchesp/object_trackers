@@ -2,8 +2,10 @@ MODEL:
   YOLOV8_FOLDER: 'D:/Data/models/yolov8'
   YOLOV8_WEIGHTS: 'yolov8m'
 INPUT:
-  FOLDER: 'D:/Data'
-  SOURCE: 0
+  FOLDER: 'D:/Data/Tejo'
+  SOURCE: '10_source.mp4'
+  # FOLDER: 'D:/Data'
+  # SOURCE: 0
 DETECTION:
   CONFIDENCE: 0.2
   IMAGE_SIZE: 640
