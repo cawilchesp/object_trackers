@@ -74,6 +74,9 @@ def main(
     with video_sink, csv_sink:
         while fvs.more():
             image = fvs.read()
+            if image is None:
+                print()
+                break
             annotated_image = image.copy()
             
             # YOLOv8 inference
