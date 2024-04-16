@@ -49,7 +49,7 @@ def main(
     # Initialize Model
     if 'v8' in weights or 'v9' in weights:
         model = YOLO(weights)
-        step_message(process_step(), 'YOLO Model Initialized')
+        step_message(process_step(), f'{weights} Model Initialized')
     elif 'rtdetr' in weights:
         model = RTDETR(weights)
         step_message(process_step(), 'RT-DETR Model Initialized')
@@ -59,6 +59,7 @@ def main(
     if not cap.isOpened(): quit()
     source_info = from_video_path(cap)
     print_video_info(source, source_info)
+    cap.release()
     
     # Anotadores
     line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
@@ -70,15 +71,19 @@ def main(
 
     # Iniciar procesamiento de video
     step_message(process_step(), 'Procesamiento de video iniciado')
-    fvs = FileVideoStream(source).start()
-    video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info, codec="mp4v")
+    fvs = FileVideoStream(source)
+    video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
     csv_sink = CSVSink(file_name=f"{output}.csv")
 
     frame_number = 0
+    fvs.start()
+    time.sleep(1.0)
+    fps = FPS().start()
     with video_sink, csv_sink:
         t_frame_start = time_synchronized()
         while fvs.more():
-            
+            print(frame_number)
+
             image = fvs.read()
             annotated_image = image.copy()
             
@@ -124,9 +129,14 @@ def main(
                 cv2.imshow("Resultado", annotated_image)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
+            fps.update()
 
     t_frame_end = time_synchronized()
     step_message('Final', f"Total Time: {(t_frame_end - t_frame_start):.2f} s")
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+    
     cv2.destroyAllWindows()
     fvs.stop()
 
@@ -137,10 +147,10 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Get configuration parameters
-    MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
-    MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
-    # MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
-    # MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
+    # MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
+    # MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
+    MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
+    MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
     # MODEL_FOLDER = config['MODEL']['RTDETR_FOLDER']
     # MODEL_WEIGHTS = config['MODEL']['RTDETR_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
