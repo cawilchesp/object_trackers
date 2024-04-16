@@ -55,7 +55,23 @@ def print_video_info(source: str, video_info: VideoInfo):
     print(f"\n{red('*'*text_length)}\n")
     
 
-def print_progress(frame_number: int, source_info: VideoInfo, progress_times: dict):
+def print_progress(frame_number: int, total_frames: int):
+    if total_frames is not None:
+        percentage = f"[ {frame_number/total_frames:6.1%} ] "
+        frame_progress = f"{frame_number} / {total_frames}"
+        percentage_title = f"{'':11}"
+    else:
+        percentage = ''
+        frame_progress = f"{frame_number}"
+        percentage_title = ''
+    
+    frame_text_length = (2 * len(str(total_frames))) + 3
+    if frame_number == 0:
+        print(f"{percentage_title}{bold('Frame'):>{frame_text_length+9}}")
+    print(f"\r{green(percentage)}{frame_progress:>{frame_text_length}}  ", end="", flush=True)
+
+
+def print_times(frame_number: int, source_info: VideoInfo, progress_times: dict):
     total_frames = source_info.total_frames
     capture_time = progress_times['capture_time']
     inference_time = progress_times['inference_time']
@@ -95,4 +111,4 @@ def print_progress(frame_number: int, source_info: VideoInfo, progress_times: di
 
 def step_message(step: str = None, message: str = None):
     step_text = green(f"[{step}]") if step != "Error" else red(f"[{step}]")
-    print(f"{step_text} {message} ✅")
+    print(f"\n{step_text} {message} ✅")
