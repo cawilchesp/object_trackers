@@ -11,6 +11,7 @@ import torch
 import time
 from tqdm import tqdm
 from pathlib import Path
+import itertools
 
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_video_path
@@ -18,19 +19,6 @@ from tools.csv_sink import CSVSink
 
 # For debugging
 from icecream import ic
-
-
-def time_synchronized():
-    """ PyTorch accurate time """
-    if torch.cuda.is_available(): torch.cuda.synchronize()
-    return time.time()
-
-
-def process_step() -> str:
-    """ Simple step counter """
-    global step_count
-    step_count = str(int(step_count) + 1)
-    return step_count
 
 
 def main(
@@ -49,10 +37,9 @@ def main(
     # Initialize Model
     if 'v8' in weights or 'v9' in weights:
         model = YOLO(weights)
-        step_message(process_step(), f'{weights} Model Initialized')
     elif 'rtdetr' in weights:
         model = RTDETR(weights)
-        step_message(process_step(), 'RT-DETR Model Initialized')
+    step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
 
     # Inicializar captura de video
     cap = cv2.VideoCapture(source)
@@ -70,7 +57,7 @@ def main(
     trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=track_length, thickness=line_thickness)
 
     # Iniciar procesamiento de video
-    step_message(process_step(), 'Procesamiento de video iniciado')
+    step_message(next(step_count), 'Procesamiento de video iniciado')
     fvs = FileVideoStream(source)
     video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
     csv_sink = CSVSink(file_name=f"{output}.csv")
@@ -80,7 +67,6 @@ def main(
     time.sleep(1.0)
     fps = FPS().start()
     with video_sink, csv_sink:
-        t_frame_start = time_synchronized()
         while fvs.more():
             print(frame_number)
 
@@ -131,11 +117,9 @@ def main(
                     break
             fps.update()
 
-    t_frame_end = time_synchronized()
-    step_message('Final', f"Total Time: {(t_frame_end - t_frame_start):.2f} s")
     fps.stop()
-    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+    step_message(next(step_count), f"Elapsed Time: {fps.elapsed():.2f} s")
+    step_message(next(step_count), f"FPS: {fps.fps():.2f}")
     
     cv2.destroyAllWindows()
     fvs.stop()
@@ -163,7 +147,7 @@ if __name__ == "__main__":
     SAVE_VIDEO = config['SAVE']['VIDEO']
     SAVE_CSV = config['SAVE']['CSV']
 
-    step_count = '0'
+    step_count = itertools.count(1)
     
     main(
         source=f"{FOLDER}/{SOURCE}",
