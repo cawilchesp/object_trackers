@@ -4,7 +4,6 @@ import supervision as sv
 import cv2
 import yaml
 import torch
-import time
 from pathlib import Path
 import itertools
 
@@ -63,7 +62,7 @@ def main(
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
     trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=track_length, thickness=line_thickness)
 
-    # Iniciar procesamiento de video
+    # Start video processing
     step_message(next(step_count), 'Start Video Processing')
     vs = WebcamVideoStream(stream_source)
     video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
@@ -72,7 +71,6 @@ def main(
     
     frame_number = 0
     vs.start()
-    # time.sleep(1.0)
     fps = FPS().start()
     with video_sink, csv_sink, source_sink:
         while True:
@@ -138,7 +136,7 @@ def main(
 
 
 if __name__ == "__main__":
-        # Initialize Configuration File
+    # Initialize Configuration File
     with open('tracking_config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
@@ -162,7 +160,7 @@ if __name__ == "__main__":
 
     main(
         source=f"{SOURCE}",
-        output=f"{FOLDER}/webcam_tracking",
+        output=f"{FOLDER}/stream_tracking",
         weights=f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt",
         class_filter=CLASS_FILTER,
         image_size=IMAGE_SIZE,
