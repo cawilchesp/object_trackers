@@ -10,7 +10,7 @@ DETECTION:
 DRAW:
   CIRCLES: True
   LINES: True
-  LABELS: False
+  LABELS: True
 SHOW: True
 SAVE:
   VIDEO: True
