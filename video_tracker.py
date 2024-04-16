@@ -1,17 +1,15 @@
 from ultralytics import YOLO, RTDETR
 import supervision as sv
 
-import imutils
-from imutils.video import FileVideoStream
-from imutils.video import FPS
-
 import cv2
 import yaml
 import torch
 import time
-from tqdm import tqdm
 from pathlib import Path
 import itertools
+
+from imutils.video import FileVideoStream
+from imutils.video import FPS
 
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_video_path
@@ -22,40 +20,40 @@ from icecream import ic
 
 
 def main(
-        source: str,
-        output: str,
-        weights: str,
-        class_filter: list[int],
-        image_size: int,
-        confidence: float,
-        track_length: int,
-        show_image: bool,
-        save_csv: bool,
-        save_video: bool
-    ) -> None:
+    source: str,
+    output: str,
+    weights: str,
+    class_filter: list[int],
+    image_size: int,
+    confidence: float,
+    track_length: int,
+    show_image: bool,
+    save_csv: bool,
+    save_video: bool
+) -> None:
+    step_count = itertools.count(1)
 
-    # Initialize Model
+    # Initialize model
     if 'v8' in weights or 'v9' in weights:
         model = YOLO(weights)
     elif 'rtdetr' in weights:
         model = RTDETR(weights)
     step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
 
-    # Inicializar captura de video
+    # Initialize video capture
     cap = cv2.VideoCapture(source)
     if not cap.isOpened(): quit()
     source_info = from_video_path(cap)
+    cap.release()
+    step_message(next(step_count), 'Video Source Initialized')
     print_video_info(source, source_info)
 
-    if source_info.width > source_info.height:
+    if show_image:
         scaled_width = 1280 if source_info.width > 1280 else source_info.width
         k = int(scaled_width * source_info.height / source_info.width)
         scaled_height = k if source_info.height > k else source_info.height
     
-    
-    cap.release()
-    
-    # Anotadores
+    # Annotators
     line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
     text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
 
@@ -64,7 +62,7 @@ def main(
     trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=track_length, thickness=line_thickness)
 
     # Iniciar procesamiento de video
-    step_message(next(step_count), 'Procesamiento de video iniciado')
+    step_message(next(step_count), 'Start Video Processing')
     fvs = FileVideoStream(source)
     video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
     csv_sink = CSVSink(file_name=f"{output}.csv")
@@ -78,7 +76,7 @@ def main(
             image = fvs.read()
             annotated_image = image.copy()
             
-            # Process YOLOv8 detections
+            # YOLOv8 inference
             results = model.track(
                 source=image,
                 persist=True,
@@ -93,7 +91,7 @@ def main(
             detections = detections.with_nms()
 
             if show_image or save_video:
-                # Dibujar etiquetas
+                # Draw labels
                 object_labels = [f"{data['class_name']} {tracker_id} ({score:.2f})" for _, _, score, _, tracker_id, data in detections]
                 annotated_image = label_annotator.annotate(
                     scene=annotated_image,
@@ -118,12 +116,13 @@ def main(
             frame_number += 1
 
             if show_image:
-                
                 cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
                 cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
                 cv2.imshow("Output", annotated_image)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
+                    print("\n")
                     break
+
             fps.update()
 
     fps.stop()
@@ -140,10 +139,10 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Get configuration parameters
-    MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
-    MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
-    # MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
-    # MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
+    # MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
+    # MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
+    MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
+    MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
     # MODEL_FOLDER = config['MODEL']['RTDETR_FOLDER']
     # MODEL_WEIGHTS = config['MODEL']['RTDETR_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
@@ -156,8 +155,6 @@ if __name__ == "__main__":
     SAVE_VIDEO = config['SAVE']['VIDEO']
     SAVE_CSV = config['SAVE']['CSV']
 
-    step_count = itertools.count(1)
-    
     main(
         source=f"{FOLDER}/{SOURCE}",
         output=f"{FOLDER}/{Path(SOURCE).stem}_tracking",
