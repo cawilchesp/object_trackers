@@ -36,12 +36,13 @@ def white(text: str) -> str:
 # Funciones
 # ---------
 def print_video_info(source: str, video_info: VideoInfo):
-    if source == 0:
+    if source.isnumeric():
         source_name = "Webcam"
     elif source.lower().startswith('rtsp://'):
         source_name = "RSTP Stream"
     else:
         source_name = Path(source).name
+    
     text_length = 20 + max(len(source_name) , len(f"{video_info.width} x {video_info.height}"))
     
     # Print video information
@@ -65,13 +66,18 @@ def print_progress(frame_number: int, source_info: VideoInfo, progress_times: di
     files_time = progress_times['files_time']
     frame_time = progress_times['frame_time']
     
-    percentage = f"[ {frame_number/total_frames:6.1%} ] " if total_frames is not None else ''
-    
+    if total_frames is not None:
+        percentage = f"[ {frame_number/total_frames:6.1%} ] "
+        frame_progress = f"{frame_number} / {total_frames}"
+        percentage_title = f"{'':11}"
+    else:
+        percentage = ''
+        frame_progress = f"{frame_number}"
+        percentage_title = ''
+        
     frame_text_length = (2 * len(str(total_frames))) + 3
-    frame_progress = f"{frame_number} / {total_frames}" if total_frames is not None else f"{frame_number}"
-
     if frame_number == 0:
-        print(f"{'':11}{bold('Frame'):>{frame_text_length+9}}{bold('Capture'):>22}{bold('Inference'):>22}{bold('Detections'):>22}{bold('Tracks'):>22}{bold('Saving'):>22}{bold('Drawings'):>22}{bold('Files'):>22}{bold('Total'):>22}")
+        print(f"{percentage_title}{bold('Frame'):>{frame_text_length+9}}{bold('Capture'):>22}{bold('Inference'):>22}{bold('Detections'):>22}{bold('Tracks'):>22}{bold('Saving'):>22}{bold('Drawings'):>22}{bold('Files'):>22}{bold('Total'):>22}")
 
     print(
         f"{green(percentage)}"
