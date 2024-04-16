@@ -68,8 +68,6 @@ def main(
     fps = FPS().start()
     with video_sink, csv_sink:
         while fvs.more():
-            print(frame_number)
-
             image = fvs.read()
             annotated_image = image.copy()
             
@@ -109,6 +107,7 @@ def main(
             if save_video: video_sink.write_frame(frame=annotated_image)
             if save_csv: csv_sink.append(detections, custom_data={'frame_number': frame_number})
 
+            print_progress(frame_number, source_info.total_frames)
             frame_number += 1
 
             if show_image:
@@ -131,10 +130,10 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Get configuration parameters
-    # MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
-    # MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
-    MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
-    MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
+    MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
+    MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
+    # MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
+    # MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
     # MODEL_FOLDER = config['MODEL']['RTDETR_FOLDER']
     # MODEL_WEIGHTS = config['MODEL']['RTDETR_WEIGHTS']
     FOLDER = config['INPUT']['FOLDER']
