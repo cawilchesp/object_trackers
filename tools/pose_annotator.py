@@ -90,6 +90,21 @@ class PoseAnnotator(BaseAnnotator):
         for object in ultralytics_results:
             object_keypoints = object.keypoints.data.cpu().numpy()[0]
             
+            # Draw pose lines
+            if lines:
+                for keypoint_line in self.keypoint_lines:
+                    line1_index, line2_index, color_index = keypoint_line
+                    x1, y1, score1 = object_keypoints[line1_index]
+                    x2, y2, score2 = object_keypoints[line2_index]
+                    if score1 > 0.5 and score2 > 0.5:
+                        cv2.line(
+                            img=scene,
+                            pt1=(int(x1),int(y1)),
+                            pt2=(int(x2),int(y2)),
+                            color=self.color_list[color_index],
+                            thickness=self.thickness,
+                            lineType=cv2.LINE_AA )
+                        
             # Draw pose points
             for keypoint_circle in self.keypoint_circles:
                 index, color_index = keypoint_circle
@@ -124,21 +139,6 @@ class PoseAnnotator(BaseAnnotator):
                             fontScale=0.25,
                             color=(0,0,0),
                             thickness=self.text_thickness,
-                            lineType=cv2.LINE_AA )
-
-            # Draw pose lines
-            if lines:
-                for keypoint_line in self.keypoint_lines:
-                    line1_index, line2_index, color_index = keypoint_line
-                    x1, y1, score1 = object_keypoints[line1_index]
-                    x2, y2, score2 = object_keypoints[line2_index]
-                    if score1 > 0.5 and score2 > 0.5:
-                        cv2.line(
-                            img=scene,
-                            pt1=(int(x1),int(y1)),
-                            pt2=(int(x2),int(y2)),
-                            color=self.color_list[color_index],
-                            thickness=self.thickness,
                             lineType=cv2.LINE_AA )
 
         return scene
