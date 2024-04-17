@@ -50,7 +50,7 @@ def main(
             pt1=(x1, y1),
             pt2=(x2, y2),
             color=(0,0,255),
-            thickness=1,
+            thickness=2,
             lineType=cv2.LINE_AA
         )
 
@@ -58,7 +58,7 @@ def main(
             scene=annotated_image,
             texts=[f"Jugador: {text} ({score:.2f})"] )
 
-
+    cv2.imwrite(f"{FOLDER}/{Path(SOURCE).stem}_ocr.png", annotated_image)
     
     cv2.imshow("Output", annotated_image)
     cv2.waitKey(0)
@@ -68,7 +68,9 @@ def main(
 
 if __name__ == "__main__":
     FOLDER = 'D:/Data/Tejo'
-    SOURCE = 'ocr_test2.jpg'
+    # SOURCE = 'ocr_test.jpg'
+    # SOURCE = 'ocr_test2.jpg'
+    SOURCE = 'ocr_test3.jpg'
 
     main(
         source=f"{FOLDER}/{SOURCE}",
