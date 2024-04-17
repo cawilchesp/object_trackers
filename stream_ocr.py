@@ -22,6 +22,7 @@ from icecream import ic
 
 def main(
     source: str,
+    output: str,
 ) -> None:
     step_count = itertools.count(1)
 
@@ -49,47 +50,45 @@ def main(
     step_message(next(step_count), 'Start Video Streaming')
     vs = WebcamVideoStream(stream_source)
 
-    frame_number = 0
     vs.start()
     fps = FPS().start()
-
     while True:
         image = vs.read()
         annotated_image = image.copy()
 
-        cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
-        cv2.imshow("Stream", image)
+        # OCR inference
+        step_message(next(step_count), 'OCR Processing')
+        results = reader.readtext(
+            image=image,
+            detail=1,
+            allowlist='0123456789'
+        )
+
+        for result in results:
+            xyxy, text, score = result
+            x1, y1 = xyxy[0]
+            x2, y2 = xyxy[2]
+
+            cv2.rectangle(
+                img=annotated_image,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=(0,0,255),
+                thickness=2,
+                lineType=cv2.LINE_AA
+            )
+
+            annotated_image = draw_info_rectangle(
+                scene=annotated_image,
+                texts=[f"Jugador: {text} ({score:.2f})"] )
+
+        cv2.namedWindow('Stream', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Stream', int(scaled_width), int(scaled_height))
+        cv2.imshow("Stream", annotated_image)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             print("\n")
 
-            # OCR inference
-            step_message(next(step_count), 'OCR Processing')
-            results = reader.readtext(
-                image=image,
-                detail=1,
-                allowlist='0123456789'
-            )
-
-            for result in results:
-                xyxy, text, score = result
-                x1, y1 = xyxy[0]
-                x2, y2 = xyxy[2]
-
-                cv2.rectangle(
-                    img=annotated_image,
-                    pt1=(x1, y1),
-                    pt2=(x2, y2),
-                    color=(0,0,255),
-                    thickness=2,
-                    lineType=cv2.LINE_AA
-                )
-
-                annotated_image = draw_info_rectangle(
-                    scene=annotated_image,
-                    texts=[f"Jugador: {text} ({score:.2f})"] )
-
-            cv2.imwrite(f"{FOLDER}/{Path(SOURCE).stem}_ocr.png", annotated_image)
+            cv2.imwrite(f"{output}/webcam_ocr.png", annotated_image)
 
             break
 
@@ -104,11 +103,7 @@ def main(
     
 
 if __name__ == "__main__":
-    FOLDER = 'D:/Data/Tejo'
-    SOURCE = 'ocr_test.jpg'
-    # SOURCE = 'ocr_test2.jpg'
-    # SOURCE = 'ocr_test3.jpg'
-
     main(
-        source=f"{FOLDER}/{SOURCE}",
+        source='0',
+        output='D:/Data/Tejo',
     )
