@@ -85,9 +85,9 @@ def main(
 
 if __name__ == "__main__":
     main(
-        source=f"{SOURCE}",
-        output=f"{FOLDER}/stream_tracking",
-        show_image=SHOW_RESULTS,
-        save_video=SAVE_VIDEO,
-        save_source=SAVE_SOURCE
+        source="",
+        output="",
+        show_image=True,
+        save_video=True,
+        save_source=True
     )
