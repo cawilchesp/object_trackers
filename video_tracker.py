@@ -61,7 +61,7 @@ def main(
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
     trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=track_length, thickness=line_thickness)
 
-    # Iniciar procesamiento de video
+    # Start video processing
     step_message(next(step_count), 'Start Video Processing')
     fvs = FileVideoStream(source)
     video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
