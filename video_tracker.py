@@ -11,6 +11,7 @@ import itertools
 from imutils.video import FileVideoStream
 from imutils.video import FPS
 
+import config
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_video_path
 from tools.csv_sink import CSVSink
@@ -137,36 +138,15 @@ def main(
 
 
 if __name__ == "__main__":
-    # Initialize Configuration File
-    with open('tracking_config.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-
-    # Get configuration parameters
-    # MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
-    # MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
-    MODEL_FOLDER = config['MODEL']['YOLOV9_FOLDER']
-    MODEL_WEIGHTS = config['MODEL']['YOLOV9_WEIGHTS']
-    # MODEL_FOLDER = config['MODEL']['RTDETR_FOLDER']
-    # MODEL_WEIGHTS = config['MODEL']['RTDETR_WEIGHTS']
-    FOLDER = config['INPUT']['FOLDER']
-    SOURCE = config['INPUT']['SOURCE']
-    CLASS_FILTER = config['DETECTION']['CLASS_FILTER']
-    IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
-    CONFIDENCE = config['DETECTION']['CONFIDENCE']
-    TRACK_LENGTH = config['DRAW']['TRACK_LENGTH']
-    SHOW_RESULTS = config['SHOW']
-    SAVE_VIDEO = config['SAVE']['VIDEO']
-    SAVE_CSV = config['SAVE']['CSV']
-
     main(
-        source=f"{FOLDER}/{SOURCE}",
-        output=f"{FOLDER}/{Path(SOURCE).stem}_tracking",
-        weights=f"{MODEL_FOLDER}/{MODEL_WEIGHTS}.pt",
-        class_filter=CLASS_FILTER,
-        image_size=IMAGE_SIZE,
-        confidence=CONFIDENCE,
-        track_length=TRACK_LENGTH,
-        show_image=SHOW_RESULTS,
-        save_csv=SAVE_CSV,
-        save_video=SAVE_VIDEO
+        source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_tracking",
+        weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
+        class_filter=config.CLASS_FILTER,
+        image_size=config.IMAGE_SIZE,
+        confidence=config.CONFIDENCE,
+        track_length=config.TRACK_LENGTH,
+        show_image=config.SHOW_IMAGE,
+        save_csv=config.SAVE_CSV,
+        save_video=config.SAVE_VIDEO
     )
