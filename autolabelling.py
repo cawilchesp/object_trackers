@@ -1,23 +1,49 @@
-from ultralytics import YOLO, RTDETR
+from ultralytics import YOLO
 import supervision as sv
 
-import sys
-import argparse
 import cv2
-import time
-import yaml
+import torch
 from tqdm import tqdm
 from pathlib import Path
 import itertools
 
+from imutils.video import FPS
+
+import config
 from tools.print_info import print_video_info, step_message
 from tools.video_info import from_video_path
 
-import autolabelling_config as config
 
 # For debugging
 from icecream import ic
 
+
+dataset_names= {
+    0: 'bicycle',
+    1: 'bus',
+    2: 'car',
+    3: 'motorbike',
+    4: 'person',
+    5: 'truck'
+}
+
+class_conversion = {
+    0: 4,
+    1: 0,
+    2: 2,
+    3: 3,
+    5: 1,
+    7: 5
+}
+
+yolo_names = {
+    0: 'person',
+    1: 'bicycle',
+    2: 'car',
+    3: 'motorcycle',
+    5: 'bus',
+    7: 'truck'
+}
 
 def main(
     source: str,
@@ -25,19 +51,15 @@ def main(
     weights: str,
     image_size: int,
     confidence: float,
-    number_images: int,
+    class_filter: list[int],
+    sample_number: int,
     show_image: bool
 ) -> None:
-    ic(output)
-    quit()
     step_count = itertools.count(1)
 
     # Initialize model
-    if 'v8' in weights or 'v9' in weights:
-        model = YOLO(weights)
-    elif 'rtdetr' in weights:
-        model = RTDETR(weights)
-    step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
+    model = YOLO(weights)
+    step_message(next(step_count), f"{Path(weights).stem.upper()} Model Initialized")
 
     # Initialize video capture
     cap = cv2.VideoCapture(source)
@@ -53,14 +75,8 @@ def main(
         scaled_height = k if source_info.height > k else source_info.height
 
     # Autolabelling settings
-
-
-
-
-    target = OUTPUT
-    samples_number = NUMBER_IMAGES
-    stride = round(source_info.total_frames / samples_number)
-    frame_generator = sv.get_video_frames_generator(source_path=SOURCE, stride=stride)
+    stride = round(source_info.total_frames / sample_number)
+    frame_generator = sv.get_video_frames_generator(source_path=source, stride=stride)
     
     # Annotators
     line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
@@ -70,46 +86,46 @@ def main(
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
 
     # Start video processing
-    step_message(process_step(), 'Video Processing Start')
-    t_start = time.time()
-    image_count = 0
+    step_message(next(step_count), 'Start Video Processing')
+    image_sink = sv.ImageSink(target_dir_path=output)
+
+
+    
+    # image_count = 0
     total = round(source_info.total_frames / stride)
-    with sv.ImageSink(target_dir_path=target) as sink:
+    fps = FPS().start()
+    with image_sink:
         for image in tqdm(frame_generator, total=total, unit='frames'):
-            sink.save_image(image=image)
-            txt_name = Path(sink.image_name_pattern.format(image_count)).stem
+            txt_name = Path(image_sink.image_name_pattern.format(image_sink.image_count)).stem
+            image_sink.save_image(image=image)
 
             annotated_image = image.copy()
 
-            # Run YOLOv8 inference
+            # Run YOLO inference
             results = model(
                 source=image,
-                imgsz=IMAGE_SIZE,
-                conf=CONFIDENCE,
-                device=DEVICE,
-                agnostic_nms=True,
-                retina_masks=True,
+                imgsz=image_size,
+                conf=confidence,
+                classes=class_filter,
+                device='cuda' if torch.cuda.is_available() else 'cpu',
                 verbose=False
             )[0]
-
-            if image_count == 0:
-                for values in results.names.values():
-                    with open(f"{target}/labelmap.txt", 'a') as txt_file:
+            if image_sink.image_count == 1:
+                for values in dataset_names.values():
+                    with open(f"{output}/labelmap.txt", 'a') as txt_file:
                         txt_file.write(f"{values}\n")
 
             for cls, xywhn in zip(results.boxes.cls.cpu().numpy(), results.boxes.xywhn.cpu().numpy()):
                 center_x, center_y, width, height = xywhn
-
-                with open(f"{target}/{txt_name}.txt", 'a') as txt_file:
-                    txt_file.write(f"{int(cls)} {center_x} {center_y} {width} {height}\n")
+                new_cls = class_conversion[cls]
+                with open(f"{output}/{txt_name}.txt", 'a') as txt_file:
+                    txt_file.write(f"{int(new_cls)} {center_x} {center_y} {width} {height}\n")
             
-            image_count += 1
-            
-            if SHOW_IMAGE:
+            if show_image:
                 detections = sv.Detections.from_ultralytics(results)
                 
                 # Draw labels
-                object_labels = [f"{results.names[class_id]} ({score:.2f})" for _, _, score, class_id, _, _ in detections]
+                object_labels = [f"{data['class_name']} ({score:.2f})" for _, _, score, _, _, data in detections]
                 annotated_image = label_annotator.annotate(
                     scene=annotated_image,
                     detections=detections,
@@ -125,21 +141,31 @@ def main(
                 cv2.imshow('Output', annotated_image)
                 cv2.resizeWindow('Output', 1280, 720)
                 
-                # Stop if Esc key is pressed
-                if cv2.waitKey(1) & 0xFF == 27:
-                    break
+                if show_image:
+                    cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
+                    cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
+                    cv2.imshow("Output", annotated_image)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        print("\n")
+                        break
 
-    # Print total time elapsed
-    step_message('Final', f"Total Time: {(time.time() - t_start):.2f} s")
+                fps.update()
+
+    fps.stop()
+    step_message(next(step_count), f"Elapsed Time: {fps.elapsed():.2f} s")
+    step_message(next(step_count), f"FPS: {fps.fps():.2f}")
+    
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     main(
-        source=Path(config.INPUT_FOLDER, config.INPUT_VIDEO),
-        output=Path(config.INPUT_FOLDER, config.INPUT_VIDEO, "_dataset"),
-        weights=Path(config.YOLOV9_FOLDER, config.YOLOV9_WEIGHTS".pt"),
+        source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_dataset",
+        weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
         image_size=config.IMAGE_SIZE,
         confidence=config.CONFIDENCE,
-        number_images=config.SAMPLE_NUMBER,
+        class_filter=config.CLASS_FILTER,
+        sample_number=config.SAMPLE_NUMBER,
         show_image=config.SHOW_IMAGE
     )
