@@ -2,7 +2,6 @@ from ultralytics import YOLO, RTDETR
 import supervision as sv
 
 import cv2
-import yaml
 import torch
 import time
 from pathlib import Path
@@ -55,8 +54,8 @@ def main(
         scaled_height = k if source_info.height > k else source_info.height
     
     # Annotators
-    line_thickness = int(sv.calculate_dynamic_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
+    line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
 
     label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness)
@@ -87,7 +86,7 @@ def main(
                 imgsz=image_size,
                 conf=confidence,
                 device='cuda' if torch.cuda.is_available() else 'cpu',
-                classes=class_filter,
+                # classes=class_filter,
                 retina_masks=True,
                 verbose=False
             )[0]
