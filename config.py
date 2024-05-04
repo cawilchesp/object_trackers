@@ -15,7 +15,7 @@ INPUT_VIDEO = 'ARS-Metroplus San Pedro CAM1.mp4'
 YOLOV8_FOLDER = ROOT / 'models' / 'yolov8'
 YOLOV8_WEIGHTS = 'yolov8x_cf_v3'
 YOLOV9_FOLDER = ROOT / 'models' / 'yolov9'
-YOLOV9_WEIGHTS = 'yolov9e'
+YOLOV9_WEIGHTS = 'yolov9c_cf_v6'
 RTDETR_FOLDER = ROOT / 'models' / 'rt-detr'
 RTDETR_WEIGHTS = 'rtdetr-l'
 
