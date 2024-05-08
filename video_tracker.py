@@ -50,8 +50,10 @@ def main(
 
     if show_image:
         scaled_width = 1280 if source_info.width > 1280 else source_info.width
-        k = int(scaled_width * source_info.height / source_info.width)
-        scaled_height = k if source_info.height > k else source_info.height
+        scaled_height = int(scaled_width * source_info.height / source_info.width)
+        scaled_height = scaled_height if source_info.height > scaled_height else source_info.height
+    
+    step_message(next(step_count), f"Device: {'GPU' if torch.cuda.is_available() else 'CPU'}")
     
     # Annotators
     line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
