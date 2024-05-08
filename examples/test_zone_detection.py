@@ -87,10 +87,9 @@ def main():
 
 
     # Zone analysis
-    zones = [sv.PolygonZone(
-                polygon=polygon, 
-                frame_resolution_wh=video_info.resolution_wh
-            ) for polygon in polygons
+    zones = [
+        sv.PolygonZone( polygon=polygon, frame_resolution_wh=video_info.resolution_wh)
+        for polygon in polygons
     ]
 
     zone_annotators = [
