@@ -22,6 +22,23 @@ def load_zones(file_path: str) -> List[np.ndarray]:
     with open(file_path, "r") as file:
         data = json.load(file)
         return [np.array(polygon, np.int32) for polygon in data]
+
+
+def find_in_list(array: np.ndarray, search_list: List[int]) -> np.ndarray:
+    """Determines if elements of a numpy array are present in a list.
+
+    Args:
+        array (np.ndarray): The numpy array of integers to check.
+        search_list (List[int]): The list of integers to search within.
+
+    Returns:
+        np.ndarray: A numpy array of booleans, where each boolean indicates whether
+        the corresponding element in `array` is found in `search_list`.
+    """
+    if not search_list:
+        return np.ones(array.shape, dtype=bool)
+    else:
+        return np.isin(array, search_list)
     
 
 def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
