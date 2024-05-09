@@ -12,19 +12,21 @@ ROOT = Path('D:/Data')
 # INPUT_VIDEO = 'ARS-Metroplus San Pedro CAM1.mp4'
 
 INPUT_FOLDER = ROOT
-INPUT_VIDEO = 'C3_detenido.mp4'
+# INPUT_VIDEO = 'market_checkout_1.mp4'
+INPUT_VIDEO = 'paradero.mp4'
 
 # Deep Learning model configuration
 YOLOV8_FOLDER = ROOT / 'models' / 'yolov8'
 YOLOV8_WEIGHTS = 'yolov8m'
 YOLOV9_FOLDER = ROOT / 'models' / 'yolov9'
-YOLOV9_WEIGHTS = 'yolov9c_cf_v6'
+YOLOV9_WEIGHTS = 'yolov9c'
 RTDETR_FOLDER = ROOT / 'models' / 'rt-detr'
 RTDETR_WEIGHTS = 'rtdetr-l'
 
 # Inference configuration
 IMAGE_SIZE = 640
 CONFIDENCE = 0.5
+IOU = 0.7
 CLASS_FILTER = [0,1,2,3,5,7]
 TRACK_LENGTH = 100
 SHOW_IMAGE = True
