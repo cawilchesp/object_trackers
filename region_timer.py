@@ -11,6 +11,9 @@ import itertools
 from imutils.video import WebcamVideoStream, FileVideoStream
 from imutils.video import FPS
 
+from inference import InferencePipeline
+from inference.core.interfaces.camera.entities import VideoFrame
+
 import config
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_camera, from_video_path
@@ -29,6 +32,7 @@ def main(
     class_filter: list[int],
     image_size: int,
     confidence: float,
+    iou: float,
     show_image: bool,
     save_csv: bool,
     save_video: bool
@@ -55,6 +59,7 @@ def main(
     step_message(next(step_count), f"Device: {'GPU' if torch.cuda.is_available() else 'CPU'}")
 
     # Annotators
+    fps_monitor = sv.FPSMonitor()
     COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
     line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
@@ -66,7 +71,8 @@ def main(
     polygons = load_zones(file_path=f"{Path(source).parent}/{Path(source).stem}_zones.json")
     regions = [ sv.PolygonZone(
         polygon=polygon,
-        triggering_anchors=(sv.Position.CENTER,)) for polygon in polygons ]
+        triggering_anchors=(sv.Position.BOTTOM_CENTER,)) for polygon in polygons ]
+    timers = [FPSBasedTimer() for _ in polygons]
 
     # Start video processing
     step_message(next(step_count), 'Start Video Processing')
@@ -98,7 +104,18 @@ def main(
             detections = sv.Detections.from_ultralytics(results)
             detections = detections.with_nms()
 
+            fps_monitor.tick()
+            fps_rt = fps_monitor.fps
             if show_image or save_video:
+                annotated_image = sv.draw_text(
+                    scene=annotated_image,
+                    text=f"{fps_rt:.1f}",
+                    text_anchor=sv.Point(40, 30),
+                    background_color=sv.Color.from_hex("#A351FB"),
+                    text_color=sv.Color.from_hex("#000000"),
+                )
+
+
                 # Draw regions
                 for index, region in enumerate(regions):
                     annotated_image = sv.draw_polygon(
@@ -108,10 +125,11 @@ def main(
                     )
 
                     detections_in_zone = detections[region.trigger(detections=detections)]
+                    time_in_zone = timers[index].tick(detections_in_zone)
                     custom_color_lookup = np.full(detections_in_zone.class_id.shape, index)
 
                     # Draw labels
-                    object_labels = [f"{data['class_name']} {tracker_id} ({score:.2f})" for _, _, score, _, tracker_id, data in detections_in_zone]
+                    object_labels = [f"ID {tracker_id} {int(time // 60):02d}:{int(time % 60):02d}" for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)]
                     annotated_image = label_annotator.annotate(
                         scene=annotated_image,
                         detections=detections_in_zone,
@@ -126,7 +144,7 @@ def main(
                 
             if save_video: video_sink.write_frame(frame=annotated_image)
 
-            print_progress(frame_number, None)
+            print_progress(frame_number, source_info.total_frames)
             frame_number += 1
 
             if show_image:
@@ -155,6 +173,7 @@ if __name__ == "__main__":
         class_filter=config.CLASS_FILTER,
         image_size=config.IMAGE_SIZE,
         confidence=config.CONFIDENCE,
+        iou=config.IOU,
         show_image=config.SHOW_IMAGE,
         save_csv=config.SAVE_CSV,
         save_video=config.SAVE_VIDEO
