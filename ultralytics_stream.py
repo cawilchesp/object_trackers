@@ -1,15 +1,25 @@
-import argparse
 from typing import List
 
 import cv2
 import numpy as np
+from pathlib import Path
+import torch
+
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
-from ultralytics import YOLO
-from utils.general import find_in_list, load_zones_config
-from utils.timers import ClockBasedTimer
 
+from ultralytics import YOLO
 import supervision as sv
+
+from tools.general import find_in_list, load_zones
+from tools.timers import ClockBasedTimer
+
+
+import config
+
+
+from icecream import ic
+
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
@@ -23,7 +33,7 @@ class CustomSink:
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.8)
         self.fps_monitor = sv.FPSMonitor()
-        self.polygons = load_zones_config(file_path=zone_configuration_path)
+        self.polygons = load_zones(file_path=zone_configuration_path)
         self.timers = [ClockBasedTimer() for _ in self.polygons]
         self.zones = [
             sv.PolygonZone(
@@ -32,8 +42,19 @@ class CustomSink:
             )
             for polygon in self.polygons
         ]
+        self.video_sink = sv.VideoSink(target_path="output.mp4", video_info=source_info)
 
     def on_prediction(self, detections: sv.Detections, frame: VideoFrame) -> None:
+        
+        detections = sv.Detections(
+            xyxy = np.array([detections[0]]),
+            mask = detections[1],
+            confidence = np.array([detections[2]]),
+            class_id = np.array([detections[3]]),
+            tracker_id = detections[4],
+            data = {'class_name': np.array([detections[5]['class_name']]) }
+        )
+        
         self.fps_monitor.tick()
         fps = self.fps_monitor.fps
 
@@ -74,7 +95,8 @@ class CustomSink:
                 custom_color_lookup=custom_color_lookup,
             )
         cv2.imshow("Processed Video", annotated_frame)
-        cv2.waitKey(1)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            return None
 
 
 def main(
@@ -93,9 +115,10 @@ def main(
     model = YOLO(weights)
 
     def inference_callback(frame: VideoFrame) -> sv.Detections:
-        results = model(frame.image, verbose=False, conf=confidence, device=device)[0]
-        return sv.Detections.from_ultralytics(results).with_nms(threshold=iou)
-
+        results = model(frame[0].image, verbose=False, conf=confidence, device=device)[0]
+        detections = sv.Detections.from_ultralytics(results).with_nms(threshold=iou)
+        return detections
+        
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
     pipeline = InferencePipeline.init_with_custom_logic(
@@ -118,22 +141,13 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Calculating detections dwell time in zones, using RTSP stream.")
-    parser.add_argument("--zone_configuration_path", type=str, required=True, help="Path to the zone configuration JSON file.")
-    parser.add_argument("--rtsp_url", type=str, required=True, help="Complete RTSP URL for the video stream.")
-    parser.add_argument("--weights", type=str, default="yolov8s.pt", help="Path to the model weights file. Default is 'yolov8s.pt'.")
-    parser.add_argument("--device", type=str, default="cpu", help="Computation device ('cpu', 'mps' or 'cuda'). Default is 'cpu'.")
-    parser.add_argument("--confidence_threshold", type=float, default=0.3, help="Confidence level for detections (0 to 1). Default is 0.3.")
-    parser.add_argument("--iou_threshold", default=0.7, type=float, help="IOU threshold for non-max suppression. Default is 0.7.")
-    parser.add_argument("--classes",nargs="*", type=int, default=[], help="List of class IDs to track. If empty, all classes are tracked.")
-    args = parser.parse_args()
-
     main(
-        rtsp_url=args.rtsp_url,
-        zone_configuration_path=args.zone_configuration_path,
-        weights=args.weights,
-        device=args.device,
-        confidence=args.confidence_threshold,
-        iou=args.iou_threshold,
-        classes=args.classes,
+        rtsp_url=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        zone_configuration_path=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_zones.json",
+        weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
+        device='cuda' if torch.cuda.is_available() else 'cpu',
+        confidence=config.CONFIDENCE,
+        iou=config.IOU,
+        classes=config.CLASS_FILTER,
     )
+   
