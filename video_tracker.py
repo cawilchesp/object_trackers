@@ -1,4 +1,4 @@
-from ultralytics import YOLO, RTDETR
+from ultralytics import YOLO
 import supervision as sv
 
 import cv2
@@ -33,13 +33,6 @@ def main(
 ) -> None:
     step_count = itertools.count(1)
 
-    # Initialize model
-    if 'v8' in weights or 'v9' in weights:
-        model = YOLO(weights)
-    elif 'rtdetr' in weights:
-        model = RTDETR(weights)
-    step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
-
     # Initialize video capture
     cap = cv2.VideoCapture(source)
     if not cap.isOpened(): quit()
@@ -53,8 +46,13 @@ def main(
         scaled_height = int(scaled_width * source_info.height / source_info.width)
         scaled_height = scaled_height if source_info.height > scaled_height else source_info.height
     
-    step_message(next(step_count), f"Device: {'GPU' if torch.cuda.is_available() else 'CPU'}")
-    
+    # GPU availability
+    step_message(next(step_count), f"Processor: {'GPU ✅' if torch.cuda.is_available() else 'CPU ⚠️'}")
+
+    # Initialize model
+    model = YOLO(weights)
+    step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
+
     # Annotators
     line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
@@ -71,7 +69,6 @@ def main(
 
     frame_number = 0
     fvs.start()
-    time.sleep(1.0)
     fps = FPS().start()
     with video_sink, csv_sink:
         while fvs.more():
