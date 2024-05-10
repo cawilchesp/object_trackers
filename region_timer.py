@@ -11,9 +11,6 @@ import itertools
 from imutils.video import WebcamVideoStream, FileVideoStream
 from imutils.video import FPS
 
-from inference import InferencePipeline
-from inference.core.interfaces.camera.entities import VideoFrame
-
 import config
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_camera, from_video_path
@@ -43,12 +40,16 @@ def main(
     model = YOLO(weights)
     step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
 
-    # Initialize video capture
-    cap = cv2.VideoCapture(source)
+    # Inicializar captura de video
+    video_source = eval(source) if source.isnumeric() else source
+    cap = cv2.VideoCapture(video_source)
     if not cap.isOpened(): quit()
-    source_info = from_video_path(cap)
+    if source.isnumeric() or source.lower().startswith('rtsp://'):
+        source_info = from_camera(cap)
+    else:
+        source_info = from_video_path(cap)
     cap.release()
-    step_message(next(step_count), 'Video Source Initialized')
+    step_message(next(step_count), 'Origen del Video Inicializado')
     print_video_info(source, source_info)
 
     if show_image:
@@ -72,18 +73,24 @@ def main(
     regions = [ sv.PolygonZone(
         polygon=polygon,
         triggering_anchors=(sv.Position.BOTTOM_CENTER,)) for polygon in polygons ]
-    timers = [FPSBasedTimer() for _ in polygons]
+    # timers = [FPSBasedTimer() for _ in polygons]
+    timers = [ClockBasedTimer() for _ in polygons]
 
     # Start video processing
     step_message(next(step_count), 'Start Video Processing')
-    fvs = FileVideoStream(source)
+    if source.isnumeric() or source.lower().startswith('rtsp://'):
+        fvs = WebcamVideoStream(video_source)
+    else:
+        fvs = FileVideoStream(source)
+    source_info.fps = 10.0
     video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
     
     frame_number = 0
     fvs.start()
     fps = FPS().start()
     with video_sink:
-        while fvs.more():
+        # while fvs.more():
+        while True:
             image = fvs.read()
             if image is None:
                 print()
@@ -124,27 +131,30 @@ def main(
                         color=COLORS.by_idx(index)
                     )
 
-                    detections_in_zone = detections[region.trigger(detections=detections)]
-                    time_in_zone = timers[index].tick(detections_in_zone)
-                    custom_color_lookup = np.full(detections_in_zone.class_id.shape, index)
+                    if detections.tracker_id is not None:
+                        # detections_in_zone = detections[region.trigger(detections=detections)]
+                        detections_in_zone = detections
+                        time_in_zone = timers[index].tick(detections_in_zone)
+                        custom_color_lookup = np.full(detections_in_zone.class_id.shape, index)
 
-                    # Draw labels
-                    object_labels = [f"ID {tracker_id} {int(time // 60):02d}:{int(time % 60):02d}" for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)]
-                    annotated_image = label_annotator.annotate(
-                        scene=annotated_image,
-                        detections=detections_in_zone,
-                        labels=object_labels,
-                        custom_color_lookup=custom_color_lookup )
+                        # Draw labels
+                        object_labels = [f"ID {tracker_id} {int(time // 60):02d}:{int(time % 60):02d}" for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)]
+                        annotated_image = label_annotator.annotate(
+                            scene=annotated_image,
+                            detections=detections_in_zone,
+                            labels=object_labels,
+                            custom_color_lookup=custom_color_lookup )
 
-                    # Draw boxes
-                    annotated_image = bounding_box_annotator.annotate(
-                        scene=annotated_image,
-                        detections=detections_in_zone,
-                        custom_color_lookup=custom_color_lookup )
+                        # Draw boxes
+                        annotated_image = bounding_box_annotator.annotate(
+                            scene=annotated_image,
+                            detections=detections_in_zone,
+                            custom_color_lookup=custom_color_lookup )
                 
             if save_video: video_sink.write_frame(frame=annotated_image)
 
-            print_progress(frame_number, source_info.total_frames)
+            # print_progress(frame_number, source_info.total_frames)
+            print_progress(frame_number, None)
             frame_number += 1
 
             if show_image:
@@ -168,7 +178,9 @@ def main(
 if __name__ == "__main__":
     main(
         source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        # source='0',
         output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_timer",
+        # output=f"{config.INPUT_FOLDER}/webcam_timer",
         weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
         class_filter=config.CLASS_FILTER,
         image_size=config.IMAGE_SIZE,
