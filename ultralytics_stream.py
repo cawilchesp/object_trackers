@@ -1,23 +1,27 @@
-from typing import List
-
-import cv2
-import numpy as np
-from pathlib import Path
-import torch
+from ultralytics import YOLO
+import supervision as sv
 
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
 
-from ultralytics import YOLO
-import supervision as sv
+from typing import List
 
-from tools.general import find_in_list, load_zones
-from tools.timers import ClockBasedTimer
-
+import cv2
+import torch
+import numpy as np
+from pathlib import Path
+import itertools
+import signal
+import sys
 
 import config
+from tools.general import find_in_list, load_zones
+from tools.print_info import print_video_info, print_progress, step_message
+from tools.video_info import VideoInfo, from_video_path
+from tools.csv_sink import CSVSink
+from tools.timers import ClockBasedTimer
 
-
+# For debugging
 from icecream import ic
 
 
@@ -29,7 +33,10 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: List[int]):
+    def __init__(
+        self, zone_configuration_path: str,
+        classes: List[int]
+    ):
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.8)
         self.fps_monitor = sv.FPSMonitor()
@@ -42,18 +49,14 @@ class CustomSink:
             )
             for polygon in self.polygons
         ]
-        self.video_sink = sv.VideoSink(target_path="output.mp4", video_info=source_info)
-
-    def on_prediction(self, detections: sv.Detections, frame: VideoFrame) -> None:
         
-        detections = sv.Detections(
-            xyxy = np.array([detections[0]]),
-            mask = detections[1],
-            confidence = np.array([detections[2]]),
-            class_id = np.array([detections[3]]),
-            tracker_id = detections[4],
-            data = {'class_name': np.array([detections[5]['class_name']]) }
-        )
+    def on_prediction(
+        self,
+        results,
+        frame: VideoFrame,
+        output_writer
+    ) -> None:
+        detections = sv.Detections.from_ultralytics(results).with_nms(threshold=0.7)
         
         self.fps_monitor.tick()
         fps = self.fps_monitor.fps
@@ -94,37 +97,71 @@ class CustomSink:
                 labels=labels,
                 custom_color_lookup=custom_color_lookup,
             )
+
+        output_writer.write(annotated_frame)
+
         cv2.imshow("Processed Video", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            return None
+        cv2.waitKey(1)
 
 
 def main(
-    rtsp_url: str,
-    zone_configuration_path: str,
+    source: str,
+    output: str,
     weights: str,
-    device: str,
+    zone_path: str,
+    class_filter: list[int],
+    image_size: int,
     confidence: float,
     iou: float,
-    classes: List[int],
+    track_length: int,
+    show_image: bool,
+    save_csv: bool,
+    save_video: bool
 ) -> None:
+    step_count = itertools.count(1)
     
+    # Initialize video capture
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened(): quit()
+    source_info = from_video_path(cap)
+    cap.release()
+    step_message(next(step_count), 'Video Source Initialized ✅')
+    print_video_info(source, source_info)
 
+    # GPU availability
+    step_message(next(step_count), f"Processor: {'GPU ✅' if torch.cuda.is_available() else 'CPU ⚠️'}")
 
-
+    # Initialize model
     model = YOLO(weights)
+    step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized ✅')
+
+    output_writer = cv2.VideoWriter(f"{output}.mp4", cv2.VideoWriter_fourcc(*'mp4v'), source_info.fps, (source_info.width, source_info.height))
+
+    def signal_handler(sig, frame):
+        output_writer.release()
+        cv2.destroyAllWindows()
+        sys.exit(0)
+    signal.signal(signal.SIGINT, signal_handler)
 
     def inference_callback(frame: VideoFrame) -> sv.Detections:
-        results = model(frame[0].image, verbose=False, conf=confidence, device=device)[0]
-        detections = sv.Detections.from_ultralytics(results).with_nms(threshold=iou)
-        return detections
+        results = model(
+            source=frame[0].image,
+            imgsz=image_size,
+            conf=confidence,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            verbose=False,
+        )[0]
+        return results
         
-    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
+    sink = CustomSink(
+        zone_configuration_path=zone_path,
+        classes=class_filter
+    )
 
     pipeline = InferencePipeline.init_with_custom_logic(
-        video_reference=rtsp_url,
+        video_reference=source,
         on_video_frame=inference_callback,
-        on_prediction=sink.on_prediction,
+        on_prediction=lambda results, frame:  sink.on_prediction(results, frame, output_writer),
     )
 
     pipeline.start()
@@ -135,19 +172,19 @@ def main(
         pipeline.terminate()
 
 
-
-
-
-
-
 if __name__ == "__main__":
     main(
-        rtsp_url=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
-        zone_configuration_path=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_zones.json",
+        source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_tracking",
         weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
-        device='cuda' if torch.cuda.is_available() else 'cpu',
+        zone_path=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_zones.json",
+        class_filter=config.CLASS_FILTER,
+        image_size=config.IMAGE_SIZE,
         confidence=config.CONFIDENCE,
         iou=config.IOU,
-        classes=config.CLASS_FILTER,
+        track_length=config.TRACK_LENGTH,
+        show_image=config.SHOW_IMAGE,
+        save_csv=config.SAVE_CSV,
+        save_video=config.SAVE_VIDEO
     )
    
