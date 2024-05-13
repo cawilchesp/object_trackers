@@ -3,6 +3,7 @@ import supervision as sv
 
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
+from inference.core.interfaces.stream.sinks import VideoFileSink
 
 from typing import List
 
