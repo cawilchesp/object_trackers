@@ -72,7 +72,7 @@ def main(
     polygons = load_zones(file_path=f"{Path(source).parent}/{Path(source).stem}_zones.json")
     regions = [ sv.PolygonZone(
         polygon=polygon,
-        triggering_anchors=(sv.Position.BOTTOM_CENTER,)) for polygon in polygons ]
+        triggering_anchors=(sv.Position.CENTER,)) for polygon in polygons ]
     # timers = [FPSBasedTimer() for _ in polygons]
     timers = [ClockBasedTimer() for _ in polygons]
 
@@ -108,8 +108,7 @@ def main(
                 retina_masks=True,
                 verbose=False
             )[0]
-            detections = sv.Detections.from_ultralytics(results)
-            detections = detections.with_nms()
+            detections = sv.Detections.from_ultralytics(results).with_nms(threshold=iou)
 
             fps_monitor.tick()
             fps_rt = fps_monitor.fps
@@ -132,8 +131,7 @@ def main(
                     )
 
                     if detections.tracker_id is not None:
-                        # detections_in_zone = detections[region.trigger(detections=detections)]
-                        detections_in_zone = detections
+                        detections_in_zone = detections[region.trigger(detections=detections)]
                         time_in_zone = timers[index].tick(detections_in_zone)
                         custom_color_lookup = np.full(detections_in_zone.class_id.shape, index)
 
@@ -181,7 +179,7 @@ if __name__ == "__main__":
         # source='0',
         output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_timer",
         # output=f"{config.INPUT_FOLDER}/webcam_timer",
-        weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
+        weights=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}.pt",
         class_filter=config.CLASS_FILTER,
         image_size=config.IMAGE_SIZE,
         confidence=config.CONFIDENCE,
