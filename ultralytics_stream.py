@@ -13,13 +13,12 @@ from typing import Union, Optional, List
 
 from inference.core.interfaces.stream.inference_pipeline import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
-from inference.core.interfaces.stream.sinks import render_boxes
 
 import config
 from tools.general import find_in_list, load_zones
 from tools.timers import ClockBasedTimer
 from tools.print_info import print_video_info, print_progress, step_message
-from tools.video_info import from_video_path
+from tools.video_info import from_video_path, from_camera
 
 # For debugging
 from icecream import ic
@@ -57,11 +56,15 @@ def main(
     step_count = itertools.count(1)
 
     # Initialize video capture
-    cap = cv2.VideoCapture(source)
+    video_source = eval(source) if source.isnumeric() else source
+    cap = cv2.VideoCapture(video_source)
     if not cap.isOpened(): quit()
-    source_info = from_video_path(cap)
+    if source.isnumeric() or source.lower().startswith('rtsp://'):
+        source_info = from_camera(cap)
+    else:
+        source_info = from_video_path(cap)
     cap.release()
-    step_message(next(step_count), 'Video Source Initialized ✅')
+    step_message(next(step_count), 'Origen del Video Inicializado')
     print_video_info(source, source_info)
 
     scaled_width = 1280 if source_info.width > 1280 else source_info.width
@@ -94,7 +97,7 @@ def main(
     zones = [
         sv.PolygonZone(
             polygon=polygon,
-            triggering_anchors=(sv.Position.BOTTOM_CENTER,),
+            triggering_anchors=(sv.Position.CENTER,),
         ) for polygon in polygons
     ]
 
@@ -136,30 +139,30 @@ def main(
                 polygon=zone.polygon,
                 color=COLORS.by_idx(idx) )
 
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = timers[idx].tick(detections_in_zone)
-            custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
+            if detections.tracker_id is not None:
+                detections_in_zone = detections[zone.trigger(detections)]
+                time_in_zone = timers[idx].tick(detections_in_zone)
+                custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
-            # Draw labels
-            # object_labels = [f"{data['class_name']} {tracker_id} ({score:.2f})" for _, _, score, _, tracker_id, data in detections]
-            object_labels = [
-                f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
-                for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
-            ]
-            annotated_image = label_annotator.annotate(
-                scene=annotated_image,
-                detections=detections_in_zone,
-                labels=object_labels,
-                custom_color_lookup=custom_color_lookup )
-            
-            # Draw boxes
-            annotated_image = bounding_box_annotator.annotate(
-                scene=annotated_image,
-                detections=detections_in_zone,
-                custom_color_lookup=custom_color_lookup )
-            
-            # Draw tracks
-            if detections_in_zone.tracker_id is not None:
+                # Draw labels
+                # object_labels = [f"{data['class_name']} {tracker_id} ({score:.2f})" for _, _, score, _, tracker_id, data in detections]
+                object_labels = [
+                    f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
+                    for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
+                ]
+                annotated_image = label_annotator.annotate(
+                    scene=annotated_image,
+                    detections=detections_in_zone,
+                    labels=object_labels,
+                    custom_color_lookup=custom_color_lookup )
+                
+                # Draw boxes
+                annotated_image = bounding_box_annotator.annotate(
+                    scene=annotated_image,
+                    detections=detections_in_zone,
+                    custom_color_lookup=custom_color_lookup )
+                
+                # Draw tracks
                 annotated_image = trace_annotator.annotate(
                     scene=annotated_image,
                     detections=detections_in_zone,
@@ -180,7 +183,7 @@ def main(
     
     global PIPELINE
     PIPELINE = InferencePipeline.init_with_custom_logic(
-        video_reference=source,
+        video_reference=video_source,
         on_video_frame=inference_callback )
     PIPELINE.start()
 
@@ -189,9 +192,11 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     print("Press Ctrl+C to terminate")
     main(
-        source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
-        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_tracking",
-        weights=f"{config.YOLOV9_FOLDER}/{config.YOLOV9_WEIGHTS}.pt",
+        # source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        source='0',
+        # output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_output",
+        output=f"{config.INPUT_FOLDER}/webcam_timer",
+        weights=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}.pt",
         zone_path=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_zones.json",
         class_filter=config.CLASS_FILTER,
         image_size=config.IMAGE_SIZE,
