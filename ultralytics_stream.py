@@ -13,6 +13,7 @@ from typing import Union, Optional, List
 
 from inference.core.interfaces.stream.inference_pipeline import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
+from inference.core.interfaces.stream.sinks import render_boxes
 
 import config
 from tools.general import find_in_list, load_zones
@@ -170,17 +171,10 @@ def main(
             
 
         print_progress(frame_number, None)
-        OUTPUT_WRITER.write(annotated_image)
+        # OUTPUT_WRITER.write(annotated_image)
         cv2.imshow("Output", annotated_image)
         cv2.waitKey(1)
         
-    
-
-    
-    
-    
-    
-    
     global PIPELINE
     PIPELINE = InferencePipeline.init_with_custom_logic(
         video_reference=video_source,
@@ -192,10 +186,10 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     print("Press Ctrl+C to terminate")
     main(
-        # source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
-        source='0',
-        # output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_output",
-        output=f"{config.INPUT_FOLDER}/webcam_timer",
+        source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        # source='0',
+        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_output",
+        # output=f"{config.INPUT_FOLDER}/webcam_timer",
         weights=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}.pt",
         zone_path=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_zones.json",
         class_filter=config.CLASS_FILTER,
