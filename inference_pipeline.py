@@ -24,19 +24,6 @@ from tools.video_info import from_video_path, from_camera
 from icecream import ic
 
 
-
-
-
-
-
-
-
-
-# COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
-# COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
-# LABEL_ANNOTATOR = sv.LabelAnnotator(
-#     color=COLORS, text_color=sv.Color.from_hex("#000000")
-# )
 PIPELINE: Optional[InferencePipeline] = None
 def signal_handler(sig, frame):
     print("Terminating")
@@ -46,17 +33,39 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
+class ModelSink:
+    def __init__(
+        self,
+        weights_path: str,
+        image_size: int,
+        confidence: float,
+        class_filter: List[int],
+    ) -> None:
+        self.model = YOLO(weights_path)
+        self.image_size = image_size        
+        self.confidence = confidence
+        self.class_filter = class_filter
+
+    def inference_callback(self, frame: VideoFrame) -> sv.Detections:
+        results = self.model(
+            source=frame[0].image,
+            imgsz=self.image_size,
+            conf=self.confidence,
+            classes=self.class_filter,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            verbose=False,
+        )[0]
+        detections = [sv.Detections.from_ultralytics(results).with_nms(threshold=0.7)]
+        return detections
 
 
 class ProcessSink:
     def __init__(
-            self,
-            source_info,
-            track_length,
-            iou,
-
-            zone_configuration_path: str,
-            classes: List[int]
+        self,
+        source_info,
+        track_length: int,
+        iou: float,
+        zone_configuration_path: str,
     ) -> None:
         self.tracker = sv.ByteTrack(minimum_matching_threshold=iou)
 
@@ -70,7 +79,6 @@ class ProcessSink:
         self.trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=track_length, thickness=line_thickness, color=self.COLORS)
         
         
-        self.classes = classes
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones(file_path=zone_configuration_path)
         self.timers = [
@@ -89,9 +97,7 @@ class ProcessSink:
         self.fps_monitor.tick()
         fps = self.fps_monitor.fps
 
-        # detections = detections[find_in_list(detections.class_id, self.classes)]
         detections = self.tracker.update_with_detections(detections)
-
 
         annotated_image = frame.image.copy()
         annotated_image = sv.draw_text(
@@ -193,55 +199,30 @@ def main(
     step_message(next(step_count), f"Processor: {'GPU ✅' if torch.cuda.is_available() else 'CPU ⚠️'}")
 
     # Initialize model
-    model = YOLO(weights)
+    model_sink = ModelSink(
+        weights_path=weights,
+        image_size=image_size,
+        confidence=confidence,
+        class_filter=class_filter
+    )
     step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized ✅')
 
-
-
-
-
-
-
-
-    def inference_callback(frame: VideoFrame) -> sv.Detections:
-        results = model(
-            source=frame[0].image,
-            imgsz=image_size,
-            conf=confidence,
-            device='cuda' if torch.cuda.is_available() else 'cpu',
-            verbose=False,
-        )[0]
-        detections = [sv.Detections.from_ultralytics(results).with_nms(threshold=0.7)]
-        return detections
-
-    sink = ProcessSink(
+    # Start video processing pipeline
+    process_sink = ProcessSink(
         source_info=source_info,
         track_length=track_length,
         iou=iou,
-        zone_configuration_path=zone_path,
-        classes=class_filter )
+        zone_configuration_path=zone_path )
+    step_message(next(step_count), 'Process Pipeline Initialized ✅')
 
-
+    step_message(next(step_count), 'Start Video Processing')
     global PIPELINE
     PIPELINE = InferencePipeline.init_with_custom_logic(
         video_reference=source,
-        on_video_frame=inference_callback,
-        on_prediction=sink.on_prediction,
+        on_video_frame=model_sink.inference_callback,
+        on_prediction=process_sink.on_prediction,
     )
     PIPELINE.start()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
