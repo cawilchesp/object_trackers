@@ -19,6 +19,7 @@ from tools.general import find_in_list, load_zones
 from tools.timers import ClockBasedTimer
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_video_path, from_camera, VideoInfo
+from tools.write_data import CSVSave
 
 # For debugging
 from icecream import ic
@@ -100,9 +101,13 @@ class ProcessSink:
             frameSize=source_info.resolution_wh,
         )
 
+        self.csv_writer = CSVSave(file_name=f"{output}.csv")
+
     def on_prediction(self, detections, frame: VideoFrame) -> None:
         self.fps_monitor.tick()
         fps = self.fps_monitor.fps
+
+        frame_number = frame.frame_id
 
         detections = self.tracker.update_with_detections(detections)
 
@@ -150,6 +155,7 @@ class ProcessSink:
                 custom_color_lookup=custom_color_lookup )
 
         self.video_writer.write(image=annotated_image)
+        self.csv_writer.append(detections, custom_data={'frame_number': frame_number})
 
         cv2.imshow("Processed Video", annotated_image)
         if cv2.waitKey(1) & 0xFF == ord("q"):
