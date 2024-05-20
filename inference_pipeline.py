@@ -18,7 +18,7 @@ import config
 from tools.general import find_in_list, load_zones
 from tools.timers import ClockBasedTimer
 from tools.print_info import print_video_info, print_progress, step_message
-from tools.video_info import from_video_path, from_camera
+from tools.video_info import from_video_path, from_camera, VideoInfo
 
 # For debugging
 from icecream import ic
@@ -62,10 +62,11 @@ class ModelSink:
 class ProcessSink:
     def __init__(
         self,
-        source_info,
+        source_info: VideoInfo,
         track_length: int,
         iou: float,
         zone_configuration_path: str,
+        output: str,
     ) -> None:
         self.tracker = sv.ByteTrack(minimum_matching_threshold=iou)
 
@@ -77,8 +78,7 @@ class ProcessSink:
         self.label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness, color=self.COLORS)
         self.bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness, color=self.COLORS)
         self.trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=track_length, thickness=line_thickness, color=self.COLORS)
-        
-        
+                
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones(file_path=zone_configuration_path)
         self.timers = [
@@ -92,6 +92,13 @@ class ProcessSink:
             )
             for polygon in self.polygons
         ]
+
+        self.video_writer = cv2.VideoWriter(
+            filename=f"{output}.mp4",
+            fourcc=cv2.VideoWriter_fourcc(*"mp4v"),
+            fps=source_info.fps,
+            frameSize=source_info.resolution_wh,
+        )
 
     def on_prediction(self, detections, frame: VideoFrame) -> None:
         self.fps_monitor.tick()
@@ -142,6 +149,8 @@ class ProcessSink:
                     detections=detections_in_zone,
                 custom_color_lookup=custom_color_lookup )
 
+        self.video_writer.write(image=annotated_image)
+
         cv2.imshow("Processed Video", annotated_image)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             print("Terminating")
@@ -149,9 +158,6 @@ class ProcessSink:
                 PIPELINE.terminate()
                 PIPELINE.join()
             sys.exit(0)
-
-
-
 
 
 
@@ -212,7 +218,8 @@ def main(
         source_info=source_info,
         track_length=track_length,
         iou=iou,
-        zone_configuration_path=zone_path )
+        zone_configuration_path=zone_path,
+        output=output )
     step_message(next(step_count), 'Process Pipeline Initialized ✅')
 
     step_message(next(step_count), 'Start Video Processing')
