@@ -167,9 +167,7 @@ class CSVSink:
 
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
         for row in parsed_rows:
-            self.writer.writerow(
-                [row.get(field_name, "") for field_name in self.field_names]
-            )
+            self.writer.writerow([row.get(field_name, "") for field_name in self.field_names])
 
     @staticmethod
     def parse_field_names(
