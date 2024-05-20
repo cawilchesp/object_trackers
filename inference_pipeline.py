@@ -78,7 +78,7 @@ class ProcessSink:
         self.COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
         self.label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_padding=2, text_position=sv.Position.TOP_LEFT, text_thickness=line_thickness, color=self.COLORS)
         self.bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=line_thickness, color=self.COLORS)
-        self.trace_annotator = sv.TraceAnnotator(position=sv.Position.BOTTOM_CENTER, trace_length=track_length, thickness=line_thickness, color=self.COLORS)
+        self.trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=track_length, thickness=line_thickness, color=self.COLORS)
                 
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones(file_path=zone_configuration_path)
@@ -166,19 +166,6 @@ class ProcessSink:
             sys.exit(0)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 def main(
     source: str,
     output: str,
@@ -236,12 +223,6 @@ def main(
         on_prediction=process_sink.on_prediction,
     )
     PIPELINE.start()
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
