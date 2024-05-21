@@ -65,10 +65,12 @@ def main(
         scaled_height = scaled_height if source_info.height > scaled_height else source_info.height
 
     # Initialize track sink
+    track_sink = TrackSink()
+
+    # Initialize annotator sink
     annotate_sink = AnnotateSink(
         source_info=source_info,
         track_length=track_length,
-        box=False,
         trace=True
     )
 
@@ -96,22 +98,16 @@ def main(
 
             detections = model_sink.detect(frame=frame)[0]
 
+            detections = track_sink.update_tracks(detections=detections, frame=frame)
+
             if show_image or save_video:
-                annotated_image, detections = annotate_sink.on_prediction(detections=detections, frame=frame)
+                annotated_image, detections = annotate_sink.on_prediction(detections=detections, frame=frame[0])
                 
             if save_video: video_sink.write_frame(frame=annotated_image)
             if save_csv: csv_sink.append(detections, custom_data={'frame_number': frame_number})
 
             print_progress(frame_number, source_info.total_frames)
             frame_number += 1
-
-            if show_image:
-                cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
-                cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
-                cv2.imshow("Output", annotated_image)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    print("\n")
-                    break
 
             fps.update()
 
