@@ -11,6 +11,7 @@ from typing import List
 from pathlib import Path
 from typing import Union, Optional, List
 
+from sinks.model_sink import ModelSink
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
 
@@ -34,30 +35,7 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
-class ModelSink:
-    def __init__(
-        self,
-        weights_path: str,
-        image_size: int,
-        confidence: float,
-        class_filter: List[int],
-    ) -> None:
-        self.model = YOLO(weights_path)
-        self.image_size = image_size        
-        self.confidence = confidence
-        self.class_filter = class_filter
 
-    def inference_callback(self, frame: VideoFrame) -> sv.Detections:
-        results = self.model(
-            source=frame[0].image,
-            imgsz=self.image_size,
-            conf=self.confidence,
-            classes=self.class_filter,
-            device='cuda' if torch.cuda.is_available() else 'cpu',
-            verbose=False,
-        )[0]
-        detections = [sv.Detections.from_ultralytics(results).with_nms(threshold=0.7)]
-        return detections
 
 
 class ProcessSink:
@@ -219,7 +197,7 @@ def main(
     global PIPELINE
     PIPELINE = InferencePipeline.init_with_custom_logic(
         video_reference=source,
-        on_video_frame=model_sink.inference_callback,
+        on_video_frame=model_sink.detect,
         on_prediction=process_sink.on_prediction,
     )
     PIPELINE.start()
