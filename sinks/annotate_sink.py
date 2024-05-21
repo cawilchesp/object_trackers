@@ -15,7 +15,6 @@ class AnnotateSink:
         self,
         source_info: VideoInfo,
         track_length: int = 50,
-        iou: float = 0.7,
         fps: bool = True,
         label: bool = True,
         box: bool = True,
@@ -26,8 +25,6 @@ class AnnotateSink:
         self.box = box
         self.trace = trace
         
-        self.tracker = sv.ByteTrack(minimum_matching_threshold=iou)
-
         # Annotators
         line_thickness = int(sv.calculate_optimal_line_thickness(resolution_wh=(source_info.width, source_info.height)) * 0.5)
         text_scale = sv.calculate_optimal_text_scale(resolution_wh=(source_info.width, source_info.height)) * 0.5
@@ -44,9 +41,7 @@ class AnnotateSink:
             self.fps_monitor.tick()
             fps_value = self.fps_monitor.fps
 
-            detections = self.tracker.update_with_detections(detections)
-
-            annotated_image = frame[0].image.copy()
+            annotated_image = frame.image.copy()
             annotated_image = sv.draw_text(
                 scene=annotated_image,
                 text=f"{fps_value:.1f}",
@@ -82,5 +77,8 @@ class AnnotateSink:
             annotated_image = self.trace_annotator.annotate(
                 scene=annotated_image,
                 detections=detections )
+            
+        cv2.imshow("Processed Video", annotated_image)
+        cv2.waitKey(1)
         
         return annotated_image, detections
