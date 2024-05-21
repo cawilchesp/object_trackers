@@ -14,6 +14,7 @@ from imutils.video import FPS
 
 from sinks.model_sink import ModelSink
 from sinks.track_sink import TrackSink
+from sinks.annotate_sink import AnnotateSink
 
 import config
 from tools.print_info import print_video_info, print_progress, step_message
@@ -64,9 +65,11 @@ def main(
         scaled_height = scaled_height if source_info.height > scaled_height else source_info.height
 
     # Initialize track sink
-    track_sink = TrackSink(
+    annotate_sink = AnnotateSink(
         source_info=source_info,
-        track_length=track_length
+        track_length=track_length,
+        box=False,
+        trace=True
     )
 
     # Start video processing
@@ -94,7 +97,7 @@ def main(
             detections = model_sink.detect(frame=frame)[0]
 
             if show_image or save_video:
-                annotated_image, detections = track_sink.on_prediction(detections=detections, frame=frame)
+                annotated_image, detections = annotate_sink.on_prediction(detections=detections, frame=frame)
                 
             if save_video: video_sink.write_frame(frame=annotated_image)
             if save_csv: csv_sink.append(detections, custom_data={'frame_number': frame_number})
