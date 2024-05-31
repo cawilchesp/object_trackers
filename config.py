@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ROOT = Path('D:/Data')
+ROOT = Path('D:/Data/Piloto_RC_2024s')
 
 # INPUT_FOLDER = ROOT / 'MARZO_2024' / 'ARS-C57-C65'
 # INPUT_VIDEO = 'ARS-Iglesia Santa Maria Magdalena CAM3.mp4'
@@ -13,11 +13,13 @@ ROOT = Path('D:/Data')
 
 INPUT_FOLDER = ROOT
 # INPUT_VIDEO = 'market_checkout_1.mp4'
-INPUT_VIDEO = 'paradero.mp4'
+# INPUT_VIDEO = 'office_demo.mp4'
+# INPUT_VIDEO = 'paradero.mp4'
+INPUT_VIDEO = 'C2_source.mp4'
 
 # Deep Learning model configuration
 YOLOV8_FOLDER = ROOT / 'models' / 'yolov8'
-YOLOV8_WEIGHTS = 'yolov8m'
+YOLOV8_WEIGHTS = 'yolov8x_cf_v5'
 YOLOV9_FOLDER = ROOT / 'models' / 'yolov9'
 YOLOV9_WEIGHTS = 'yolov9c'
 RTDETR_FOLDER = ROOT / 'models' / 'rt-detr'
