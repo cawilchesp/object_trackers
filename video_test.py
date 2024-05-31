@@ -44,8 +44,7 @@ def main(
         weights_path=weights,
         image_size=image_size,
         confidence=confidence,
-        class_filter=class_filter
-        )
+        class_filter=class_filter )
     step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
 
     # GPU availability
@@ -71,8 +70,7 @@ def main(
     annotate_sink = AnnotateSink(
         source_info=source_info,
         track_length=track_length,
-        trace=True
-    )
+        trace=True )
 
     # Start video processing
     step_message(next(step_count), 'Start Video Processing')
