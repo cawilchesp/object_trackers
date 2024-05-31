@@ -120,19 +120,22 @@ class ProcessSink:
                     scene=annotated_image,
                     detections=detections_in_zone,
                     labels=object_labels,
-                    custom_color_lookup=custom_color_lookup )
+                    custom_color_lookup=custom_color_lookup
+                )
                 
                 # Draw boxes
                 annotated_image = self.bounding_box_annotator.annotate(
                     scene=annotated_image,
                     detections=detections_in_zone,
-                    custom_color_lookup=custom_color_lookup )
+                    custom_color_lookup=custom_color_lookup
+                )
                 
                 # Draw tracks
                 annotated_image = self.trace_annotator.annotate(
                     scene=annotated_image,
                     detections=detections_in_zone,
-                custom_color_lookup=custom_color_lookup )
+                    custom_color_lookup=custom_color_lookup
+                )
 
                 custom_data = {
                     'frame_number': frame_number,
@@ -187,8 +190,7 @@ def main(
         weights_path=weights,
         image_size=image_size,
         confidence=confidence,
-        class_filter=class_filter
-    )
+        class_filter=class_filter )
     step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized ✅')
 
     # Start video processing pipeline
