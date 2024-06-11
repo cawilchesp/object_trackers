@@ -1,8 +1,6 @@
 from ultralytics import YOLO
 import supervision as sv
 
-from inference.core.interfaces.camera.entities import VideoFrame
-
 import torch
 from typing import List
 
