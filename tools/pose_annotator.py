@@ -55,7 +55,8 @@ class PoseAnnotator(BaseAnnotator):
         ultralytics_results,
         circles: bool = True,
         lines: bool = True,
-        labels: bool = False
+        labels: bool = False,
+        color: tuple = None
     ) -> np.ndarray:
         """
         Annotates the given scene with pose keypoints based on the provided detections.
@@ -101,7 +102,7 @@ class PoseAnnotator(BaseAnnotator):
                             img=scene,
                             pt1=(int(x1),int(y1)),
                             pt2=(int(x2),int(y2)),
-                            color=self.color_list[color_index],
+                            color=self.color_list[color_index] if color is None else color,
                             thickness=self.thickness,
                             lineType=cv2.LINE_AA )
                         
@@ -115,7 +116,7 @@ class PoseAnnotator(BaseAnnotator):
                             img=scene,
                             center=(x, y),
                             radius=self.radius,
-                            color=self.color_list[color_index],
+                            color=self.color_list[color_index] if color is None else color,
                             thickness=cv2.FILLED )
                         
                     if labels:
@@ -129,7 +130,7 @@ class PoseAnnotator(BaseAnnotator):
                             img=scene,
                             pt1=(x+2, y-4-point_text_size[1]),
                             pt2=(x+6+point_text_size[0], y),
-                            color=self.color_list[color_index],
+                            color=self.color_list[color_index] if color is None else color,
                             thickness=cv2.FILLED )
                         cv2.putText(
                             img=scene,
