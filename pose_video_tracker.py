@@ -10,6 +10,8 @@ import itertools
 from imutils.video import FileVideoStream
 from imutils.video import FPS
 
+import config
+from tools.general import find_in_list, load_zones
 from tools.print_info import print_video_info, print_progress, step_message
 from tools.video_info import from_video_path
 from tools.pose_annotator import PoseAnnotator
@@ -25,19 +27,27 @@ def main(
     weights: str,
     image_size: int,
     confidence: float,
-    draw_circles: bool,
-    draw_lines: bool,
-    draw_labels: bool,
     show_image: bool,
-    save_csv: bool,
-    save_video: bool,
-    save_source: bool
+    save_video: bool
 ) -> None:
     step_count = itertools.count(1)
 
     # Initialize model
+    ppe_model = YOLO(f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m-ppe.pt")
     model = YOLO(weights)
+    cel_model = YOLO(f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m.pt")
     step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
+
+    # Initialize zones
+    # polygons = load_zones(file_path="D:/Data/Harry/16_region.json")
+    # zones = [
+    #     sv.PolygonZone(
+    #         polygon=polygon,
+    #         triggering_anchors=(sv.Position.BOTTOM_CENTER,),
+    #     )
+    #     for polygon in polygons
+    # ]
+    # COLORS = sv.ColorPalette.from_hex(["#3CB44B", "#FFE119", "#3C76D1"])
 
     # Initialize video capture
     cap = cv2.VideoCapture(source)
@@ -54,6 +64,9 @@ def main(
 
     # Annotators
     pose_annotator = PoseAnnotator(thickness=2, radius=4)
+    color_annotator = sv.ColorAnnotator(color=sv.Color(r=0, g=0, b=200), opacity=0.25)
+    ppe_color_annotator = sv.ColorAnnotator(color=sv.Color(r=0, g=255, b=0), opacity=0.5)
+    cel_color_annotator = sv.ColorAnnotator(color=sv.Color(r=255, g=255, b=0), opacity=0.5)
 
     # Start video processing
     step_message(next(step_count), 'Start Video Processing')
@@ -74,24 +87,62 @@ def main(
             annotated_image = image.copy()
             
             # YOLOv8 inference
-            results = model.track(
+            results = model(
                 source=image,
-                persist=True,
                 imgsz=image_size,
                 conf=confidence,
                 device='cuda' if torch.cuda.is_available() else 'cpu',
-                retina_masks=True,
                 verbose=False
             )[0]
 
+            ppe_results = ppe_model(
+                source=image,
+                imgsz=image_size,
+                conf=confidence,
+                device='cuda' if torch.cuda.is_available() else 'cpu',
+                verbose=False
+            )[0]
+
+            cel_results = cel_model(
+                source=image,
+                imgsz=image_size,
+                conf=confidence,
+                device='cuda' if torch.cuda.is_available() else 'cpu',
+                classes=[67],
+                verbose=False
+            )[0]
+
+            detections = sv.Detections.from_ultralytics(results)
+            ppe_detections = sv.Detections.from_ultralytics(ppe_results)
+            cel_detections = sv.Detections.from_ultralytics(cel_results)
+
             if show_image or save_video:
+                # for idx, zone in enumerate(zones):
+                #     annotated_image = sv.draw_polygon(
+                #         scene=annotated_image,
+                #         polygon=zone.polygon,
+                #         color=COLORS.by_idx(idx)
+                #     )
                 # Draw poses
                 annotated_image = pose_annotator.annotate(
                     scene=annotated_image,
                     ultralytics_results=results,
-                    circles=draw_circles,
-                    lines=draw_lines,
-                    labels=draw_labels
+                    color=(0,255,255)
+                )
+
+                annotated_image = color_annotator.annotate(
+                    scene=annotated_image,
+                    detections=detections
+                )
+
+                annotated_image = ppe_color_annotator.annotate(
+                    scene=annotated_image,
+                    detections=ppe_detections
+                )
+
+                annotated_image = cel_color_annotator.annotate(
+                    scene=annotated_image,
+                    detections=cel_detections
                 )
             
             if save_video: video_sink.write_frame(frame=annotated_image)
@@ -118,36 +169,12 @@ def main(
 
 
 if __name__ == "__main__":
-    # Initialize Configuration File
-    with open('pose_config.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-
-    # Get configuration parameters
-    MODEL_FOLDER = config['MODEL']['YOLOV8_FOLDER']
-    MODEL_WEIGHTS = config['MODEL']['YOLOV8_WEIGHTS']
-    FOLDER = config['INPUT']['FOLDER']
-    SOURCE = config['INPUT']['SOURCE']
-    IMAGE_SIZE = config['DETECTION']['IMAGE_SIZE']
-    CONFIDENCE = config['DETECTION']['CONFIDENCE']
-    DRAW_CIRCLES = config['DRAW']['CIRCLES']
-    DRAW_LINES = config['DRAW']['LINES']
-    DRAW_LABELS = config['DRAW']['LABELS']
-    SHOW_IMAGE = config['SHOW']
-    SAVE_VIDEO = config['SAVE']['VIDEO']
-    SAVE_CSV = config['SAVE']['CSV']
-    SAVE_SOURCE = config['SAVE']['SOURCE']
-
     main(
-        source=f"{FOLDER}/{SOURCE}",
-        output=f"{FOLDER}/{Path(SOURCE).stem}_pose_tracking",
-        weights=f"{MODEL_FOLDER}/{MODEL_WEIGHTS}-pose.pt",
-        image_size=IMAGE_SIZE,
-        confidence=CONFIDENCE,
-        draw_circles=DRAW_CIRCLES,
-        draw_lines=DRAW_LINES,
-        draw_labels=DRAW_LABELS,
-        show_image=SHOW_IMAGE,
-        save_csv=SAVE_CSV,
-        save_video=SAVE_VIDEO,
-        save_source=SAVE_SOURCE
+        source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
+        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_output",
+        weights=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}x-pose.pt",
+        image_size=config.IMAGE_SIZE,
+        confidence=config.CONFIDENCE,
+        show_image=True,
+        save_video=True
     )
