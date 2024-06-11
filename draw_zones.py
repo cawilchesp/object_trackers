@@ -154,11 +154,11 @@ def main(source_path: str, zone_configuration_path: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Interactively draw polygons on images or video frames and save the annotations." )
-    parser.add_argument("--source_path", type=str, required=True, help="Path to the source image or video file for drawing polygons.")
-    parser.add_argument("--zone_configuration_path", type=str, required=True, help="Path where the polygon annotations will be saved as a JSON file.")
+    parser.add_argument("--source", type=str, required=True, help="Path to the source image or video file for drawing polygons.")
+    parser.add_argument("--zone", type=str, required=True, help="Path where the polygon annotations will be saved as a JSON file.")
     arguments = parser.parse_args()
     
     main(
-        source_path=arguments.source_path,
-        zone_configuration_path=arguments.zone_configuration_path,
+        source_path=arguments.source,
+        zone_configuration_path=arguments.zone,
     )
