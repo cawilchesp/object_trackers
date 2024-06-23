@@ -107,8 +107,6 @@ def main(
                 retina_masks=True,
                 verbose=False
             )[0]
-            ic(results)
-            quit()
             detections = sv.Detections.from_ultralytics(results)
             detections = detections.with_nms()
                     
