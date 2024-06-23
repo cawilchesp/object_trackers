@@ -1,21 +1,22 @@
-from ultralytics import YOLO
 import supervision as sv
 
-import yaml
-import torch
 import cv2
-from pathlib import Path
+import torch
+import datetime
 import itertools
+from pathlib import Path
 
-from imutils.video import FileVideoStream
-from imutils.video import FPS
+from imutils.video import FileVideoStream, WebcamVideoStream
+
+from sinks.model_sink import ModelSink
+from sinks.annotation_sink import AnnotationSink
+from sinks.keypoint_sink import KeyPointSink
 
 import config
-from tools.general import find_in_list, load_zones
-from tools.print_info import print_video_info, print_progress, step_message
-from tools.video_info import from_video_path
-from tools.pose_annotator import PoseAnnotator
-from tools.csv_sink import CSVSink
+from tools.video_info import VideoInfo
+from tools.messages import source_message, progress_message, step_message
+from tools.general import load_zones
+
 
 # For debugging
 from icecream import ic
@@ -26,155 +27,172 @@ def main(
     output: str,
     weights: str,
     image_size: int,
-    confidence: float,
-    show_image: bool,
-    save_video: bool
+    confidence: float
 ) -> None:
-    step_count = itertools.count(1)
+    # Initialize video source
+    source_info, source_flag = VideoInfo.get_source_info(source)
+    step_message(next(step_count), 'Video Source Initialized ✅')
+    source_message(source, source_info)
 
-    # Initialize model
-    ppe_model = YOLO(f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m-ppe.pt")
-    model = YOLO(weights)
-    cel_model = YOLO(f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m.pt")
-    step_message(next(step_count), f'{Path(weights).stem.upper()} Model Initialized')
+    # Check GPU availability
+    step_message(next(step_count), f"Processor: {'GPU ✅' if torch.cuda.is_available() else 'CPU ⚠️'}")
 
-    # Initialize zones
-    # polygons = load_zones(file_path="D:/Data/Harry/16_region.json")
-    # zones = [
-    #     sv.PolygonZone(
-    #         polygon=polygon,
-    #         triggering_anchors=(sv.Position.BOTTOM_CENTER,),
-    #     )
-    #     for polygon in polygons
-    # ]
-    # COLORS = sv.ColorPalette.from_hex(["#3CB44B", "#FFE119", "#3C76D1"])
+    # Initialize YOLOv8 model
+    person_sink = ModelSink(weights_path=weights)
+    ppe_sink = ModelSink(weights_path=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m-ppe.pt")
+    # celphone_sink = ModelSink(
+    #     weights_path=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m.pt",
+    #     class_filter=[67]
+    # )
+    step_message(next(step_count), f"{Path(weights).stem.upper()} Model Initialized ✅")
 
-    # Initialize video capture
-    cap = cv2.VideoCapture(source)
-    if not cap.isOpened(): quit()
-    source_info = from_video_path(cap)
-    cap.release()
-    step_message(next(step_count), 'Video Source Initialized')
-    print_video_info(source, source_info)
-
-    if show_image:
-        scaled_width = 1280 if source_info.width > 1280 else source_info.width
-        k = int(scaled_width * source_info.height / source_info.width)
-        scaled_height = k if source_info.height > k else source_info.height
+    scaled_width = 1280 if source_info.width > 1280 else source_info.width
+    scaled_height = int(scaled_width * source_info.height / source_info.width)
+    scaled_height = scaled_height if source_info.height > scaled_height else source_info.height
 
     # Annotators
-    pose_annotator = PoseAnnotator(thickness=2, radius=4)
-    color_annotator = sv.ColorAnnotator(color=sv.Color(r=0, g=0, b=200), opacity=0.25)
-    ppe_color_annotator = sv.ColorAnnotator(color=sv.Color(r=0, g=255, b=0), opacity=0.5)
-    cel_color_annotator = sv.ColorAnnotator(color=sv.Color(r=255, g=255, b=0), opacity=0.5)
+    person_annotation_sink = AnnotationSink(
+        source_info=source_info,
+        fps=False,
+        label=False,
+        box=False,
+        colorbox=True,
+        vertex=True,
+        edge=True,
+        color_bg=sv.Color(r=0, g=0, b=200),
+        color_opacity=0.25,
+    )
 
-    # Start video processing
-    step_message(next(step_count), 'Start Video Processing')
-    fvs = FileVideoStream(source)
-    video_sink = sv.VideoSink(target_path=f"{output}.mp4", video_info=source_info)
-    # csv_sink = CSVSink(file_name=f"{output}.csv")
+    ppe_annotation_sink = AnnotationSink(
+        source_info=source_info,
+        fps=False,
+        label=False,
+        box=False,
+        colorbox=True,
+        vertex=False,
+        edge=False,
+        color_bg=sv.Color(r=0, g=255, b=0),
+        color_opacity=0.5,
+    )
+
+    # celphone_annotation_sink = AnnotationSink(
+    #     source_info=source_info,
+    #     fps=False,
+    #     label=False,
+    #     box=False,
+    #     colorbox=True,
+    #     vertex=False,
+    #     edge=False,
+    #     color_bg=sv.Color(r=255, g=255, b=0),
+    #     color_opacity=0.5,
+    # )
+
+    # Initialize zones
+    polygons = load_zones(file_path="D:/Data/Industria/1_region.json")
+    zones = [
+        sv.PolygonZone(
+            polygon=polygon,
+            triggering_anchors=(sv.Position.BOTTOM_CENTER,),
+        )
+        for polygon in polygons
+    ]
+    COLORS = sv.ColorPalette.from_hex(["#3CB44B", "#FFE119", "#3C76D1"])
+
+    # Start video detection processing
+    step_message(next(step_count), 'Video Detection Started ✅')
+
+    if source_flag == 'stream':
+        video_stream = WebcamVideoStream(src=eval(source) if source.isnumeric() else source)
+        source_writer = cv2.VideoWriter(f"{output}_source.mp4", cv2.VideoWriter_fourcc(*'mp4v'), source_info.fps, (source_info.width, source_info.height))
+    elif source_flag == 'video':
+        video_stream = FileVideoStream(source)
+    output_writer = cv2.VideoWriter(f"{output}.mp4", cv2.VideoWriter_fourcc(*'mp4v'), source_info.fps, (source_info.width, source_info.height))
 
     frame_number = 0
-    fvs.start()
-    # time.sleep(1.0)
-    fps = FPS().start()
-    with video_sink:
-        while fvs.more():
-            image = fvs.read()
+    output_data = []
+    video_stream.start()
+    time_start = datetime.datetime.now()
+    fps_monitor = sv.FPSMonitor()
+    try:
+        while video_stream.more() if source_flag == 'video' else True:
+            fps_monitor.tick()
+            fps_value = fps_monitor.fps
+
+            image = video_stream.read()
             if image is None:
                 print()
                 break
             annotated_image = image.copy()
             
-            # YOLOv8 inference
-            results = model(
-                source=image,
-                imgsz=image_size,
-                conf=confidence,
-                device='cuda' if torch.cuda.is_available() else 'cpu',
-                verbose=False
-            )[0]
-
-            ppe_results = ppe_model(
-                source=image,
-                imgsz=image_size,
-                conf=confidence,
-                device='cuda' if torch.cuda.is_available() else 'cpu',
-                verbose=False
-            )[0]
-
-            cel_results = cel_model(
-                source=image,
-                imgsz=image_size,
-                conf=confidence,
-                device='cuda' if torch.cuda.is_available() else 'cpu',
-                classes=[67],
-                verbose=False
-            )[0]
-
-            detections = sv.Detections.from_ultralytics(results)
+            # Inference
+            person_results = person_sink.detect(image=image)
+            ppe_results = ppe_sink.detect(image=image)
+            # cel_results = celphone_sink.detect(image=image)
+            
+            # Convert results to Supervision format
+            person_keypoints = sv.KeyPoints.from_ultralytics(person_results)
+            person_detections = sv.Detections.from_ultralytics(person_results)
             ppe_detections = sv.Detections.from_ultralytics(ppe_results)
-            cel_detections = sv.Detections.from_ultralytics(cel_results)
+            # cel_detections = sv.Detections.from_ultralytics(cel_results)
 
-            if show_image or save_video:
-                # for idx, zone in enumerate(zones):
-                #     annotated_image = sv.draw_polygon(
-                #         scene=annotated_image,
-                #         polygon=zone.polygon,
-                #         color=COLORS.by_idx(idx)
-                #     )
-                # Draw poses
-                annotated_image = pose_annotator.annotate(
+            for idx, zone in enumerate(zones):
+                annotated_image = sv.draw_polygon(
                     scene=annotated_image,
-                    ultralytics_results=results,
-                    color=(0,255,255)
-                )
-
-                annotated_image = color_annotator.annotate(
-                    scene=annotated_image,
-                    detections=detections
-                )
-
-                annotated_image = ppe_color_annotator.annotate(
-                    scene=annotated_image,
-                    detections=ppe_detections
-                )
-
-                annotated_image = cel_color_annotator.annotate(
-                    scene=annotated_image,
-                    detections=cel_detections
+                    polygon=zone.polygon,
+                    color=COLORS.by_idx(idx)
                 )
             
-            if save_video: video_sink.write_frame(frame=annotated_image)
+            # Draw annotations
+            annotated_image = person_annotation_sink.on_detections(
+                detections=person_detections,
+                scene=annotated_image
+            )
+            annotated_image = person_annotation_sink.on_keypoints(
+                key_points=person_keypoints,
+                scene=annotated_image
+            )
+            annotated_image = ppe_annotation_sink.on_detections(
+                detections=ppe_detections,
+                scene=annotated_image
+            )
+            # annotated_image = celphone_annotation_sink.on_detections(
+            #     detections=cel_detections,
+            #     scene=annotated_image
+            # )
             
-            print_progress(frame_number, None)
+            # Save results
+            output_writer.write(annotated_image)
+            if source_flag == 'stream': source_writer.write(image)
+            
+            # Print progress
+            progress_message(frame_number, source_info.total_frames, fps_value)
             frame_number += 1
 
-            if show_image:
-                cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
-                cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
-                cv2.imshow("Output", annotated_image)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    print("\n")
-                    break
-            
-            fps.update()
+            cv2.namedWindow('Output', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('Output', int(scaled_width), int(scaled_height))
+            cv2.imshow("Output", annotated_image)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                print("\n")
+                break
 
-    fps.stop()
-    step_message(next(step_count), f"Elapsed Time: {fps.elapsed():.2f} s")
-    step_message(next(step_count), f"FPS: {fps.fps():.2f}")
+    except KeyboardInterrupt:
+        step_message(next(step_count), 'End of Video ✅')
+
+
+    step_message(next(step_count), f"Elapsed Time: {(datetime.datetime.now() - time_start).total_seconds():.2f} s")
+    output_writer.release()
+    if source_flag == 'stream': source_writer.release()
 
     cv2.destroyAllWindows()
-    fvs.stop()
+    video_stream.stop()
 
 
 if __name__ == "__main__":
+    step_count = itertools.count(1)
     main(
         source=f"{config.INPUT_FOLDER}/{config.INPUT_VIDEO}",
-        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_output",
+        output=f"{config.INPUT_FOLDER}/{Path(config.INPUT_VIDEO).stem}_output_2",
         weights=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}x-pose.pt",
         image_size=config.IMAGE_SIZE,
-        confidence=config.CONFIDENCE,
-        show_image=True,
-        save_video=True
+        confidence=config.CONFIDENCE
     )
