@@ -42,7 +42,7 @@ class AnnotationSink:
         if self.trace: self.trace_annotator = sv.TraceAnnotator(position=sv.Position.CENTER, trace_length=track_length, thickness=line_thickness)
         if self.colorbox: self.color_annotator = sv.ColorAnnotator(color=color_bg, opacity=color_opacity)
         
-        if self.vertex: self.vertex_annotator = sv.VertexAnnotator(radius=line_thickness, color=sv.Color.YELLOW)
+        if self.vertex: self.vertex_annotator = sv.VertexAnnotator(radius=line_thickness * 3, color=sv.Color.YELLOW)
         if self.edge: self.edge_annotator = sv.EdgeAnnotator(thickness=line_thickness, color=sv.Color.YELLOW)
         if self.vertex_label: self.vertex_label_annotator = sv.VertexLabelAnnotator(border_radius=line_thickness, color=sv.Color.YELLOW, text_color=sv.Color.BLACK)
 
