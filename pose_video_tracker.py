@@ -10,7 +10,6 @@ from imutils.video import FileVideoStream, WebcamVideoStream
 
 from sinks.model_sink import ModelSink
 from sinks.annotation_sink import AnnotationSink
-from sinks.keypoint_sink import KeyPointSink
 
 import config
 from tools.video_info import VideoInfo
@@ -88,7 +87,7 @@ def main(
     # )
 
     # Initialize zones
-    polygons = load_zones(file_path="D:/Data/Industria/1_region.json")
+    polygons = load_zones(file_path="D:/Data/Industria/4_region.json")
     zones = [
         sv.PolygonZone(
             polygon=polygon,
@@ -96,7 +95,7 @@ def main(
         )
         for polygon in polygons
     ]
-    COLORS = sv.ColorPalette.from_hex(["#3CB44B", "#FFE119", "#3C76D1"])
+    COLORS = sv.ColorPalette.from_hex(["#FFE119", "#3CB44B", "#3C76D1"])
 
     # Start video detection processing
     step_message(next(step_count), 'Video Detection Started ✅')
@@ -123,7 +122,8 @@ def main(
                 print()
                 break
             annotated_image = image.copy()
-            
+            mask_image = image.copy()
+
             # Inference
             person_results = person_sink.detect(image=image)
             ppe_results = ppe_sink.detect(image=image)
@@ -136,11 +136,20 @@ def main(
             # cel_detections = sv.Detections.from_ultralytics(cel_results)
 
             for idx, zone in enumerate(zones):
-                annotated_image = sv.draw_polygon(
-                    scene=annotated_image,
-                    polygon=zone.polygon,
-                    color=COLORS.by_idx(idx)
+                # annotated_image = sv.draw_polygon(
+                #     scene=annotated_image,
+                #     polygon=zone.polygon,
+                #     color=COLORS.by_idx(idx)
+                # )
+                annotated_image = cv2.fillPoly(
+                    annotated_image,
+                    [zone.polygon],
+                    # isClosed=True,
+                    color=COLORS.by_idx(idx).as_bgr()
                 )
+            annotated_image = cv2.addWeighted(
+                annotated_image, 0.5, mask_image, 1 - 0.5, gamma=0
+            )
             
             # Draw annotations
             annotated_image = person_annotation_sink.on_detections(
