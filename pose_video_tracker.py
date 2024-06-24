@@ -39,10 +39,11 @@ def main(
     # Initialize YOLOv8 model
     person_sink = ModelSink(weights_path=weights)
     ppe_sink = ModelSink(weights_path=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m-ppe.pt")
-    # celphone_sink = ModelSink(
-    #     weights_path=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}m.pt",
-    #     class_filter=[67]
-    # )
+    celphone_sink = ModelSink(
+        weights_path=f"{config.YOLOV8_FOLDER}/{config.YOLOV8_WEIGHTS}x.pt",
+        class_filter=[67],
+        confidence=0.1
+    )
     step_message(next(step_count), f"{Path(weights).stem.upper()} Model Initialized ✅")
 
     scaled_width = 1280 if source_info.width > 1280 else source_info.width
@@ -74,20 +75,20 @@ def main(
         color_opacity=0.5,
     )
 
-    # celphone_annotation_sink = AnnotationSink(
-    #     source_info=source_info,
-    #     fps=False,
-    #     label=False,
-    #     box=False,
-    #     colorbox=True,
-    #     vertex=False,
-    #     edge=False,
-    #     color_bg=sv.Color(r=255, g=255, b=0),
-    #     color_opacity=0.5,
-    # )
+    celphone_annotation_sink = AnnotationSink(
+        source_info=source_info,
+        fps=False,
+        label=False,
+        box=False,
+        colorbox=True,
+        vertex=False,
+        edge=False,
+        color_bg=sv.Color(r=255, g=0, b=255),
+        color_opacity=0.5,
+    )
 
     # Initialize zones
-    polygons = load_zones(file_path="D:/Data/Industria/4_region.json")
+    polygons = load_zones(file_path="D:/Data/Industria/3_region.json")
     zones = [
         sv.PolygonZone(
             polygon=polygon,
@@ -95,7 +96,7 @@ def main(
         )
         for polygon in polygons
     ]
-    COLORS = sv.ColorPalette.from_hex(["#FFE119", "#3CB44B", "#3C76D1"])
+    COLORS = sv.ColorPalette.from_hex(["#FFE119", "#3C76D1", "#3CB44B"])
 
     # Start video detection processing
     step_message(next(step_count), 'Video Detection Started ✅')
@@ -127,13 +128,13 @@ def main(
             # Inference
             person_results = person_sink.detect(image=image)
             ppe_results = ppe_sink.detect(image=image)
-            # cel_results = celphone_sink.detect(image=image)
+            cel_results = celphone_sink.detect(image=image)
             
             # Convert results to Supervision format
             person_keypoints = sv.KeyPoints.from_ultralytics(person_results)
             person_detections = sv.Detections.from_ultralytics(person_results)
             ppe_detections = sv.Detections.from_ultralytics(ppe_results)
-            # cel_detections = sv.Detections.from_ultralytics(cel_results)
+            cel_detections = sv.Detections.from_ultralytics(cel_results)
 
             for idx, zone in enumerate(zones):
                 # annotated_image = sv.draw_polygon(
@@ -164,10 +165,10 @@ def main(
                 detections=ppe_detections,
                 scene=annotated_image
             )
-            # annotated_image = celphone_annotation_sink.on_detections(
-            #     detections=cel_detections,
-            #     scene=annotated_image
-            # )
+            annotated_image = celphone_annotation_sink.on_detections(
+                detections=cel_detections,
+                scene=annotated_image
+            )
             
             # Save results
             output_writer.write(annotated_image)
