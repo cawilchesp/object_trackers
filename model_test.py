@@ -1,11 +1,11 @@
-from ultralytics import YOLO, YOLOv10
+from ultralytics import YOLO
 
 # Load a pretrained YOLOv10n model
 root_model_path = 'D:/Data/models'
 
 v8_model = YOLO(f"{root_model_path}/yolov8/yolov8x.pt")
 v9_model = YOLO(f"{root_model_path}/yolov9/yolov9e.pt")
-v10_model = YOLOv10(f"{root_model_path}/yolov10/yolov10x.pt")
+v10_model = YOLO(f"{root_model_path}/yolov10/yolov10x.pt")
 
 
 
