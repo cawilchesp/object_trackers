@@ -2,33 +2,17 @@ from pathlib import Path
 
 ROOT = Path('D:/Data')
 
-# INPUT_FOLDER = ROOT / 'MARZO_2024' / 'ARS-C57-C65'
-# INPUT_VIDEO = 'ARS-Iglesia Santa Maria Magdalena CAM3.mp4'
-
-# INPUT_FOLDER = ROOT / 'MARZO_2024' / 'ARS-Iguana'
-# INPUT_VIDEO = 'ARS-Iguana CAM2.mp4'
-
-# INPUT_FOLDER = ROOT / 'MARZO_2024' / 'ARS-SanPedro'
-# INPUT_VIDEO = 'ARS-Metroplus San Pedro CAM1.mp4'
-
-# INPUT_FOLDER = ROOT / 'Piloto_RC_2024'
-# INPUT_VIDEO = 'C2_source.mp4'
-
 # INPUT_FOLDER = ROOT
-# INPUT_VIDEO = 'market_checkout_1.mp4'
-# INPUT_VIDEO = 'office_demo.mp4'
 # INPUT_VIDEO = 'paradero.mp4'
-
-INPUT_FOLDER = ROOT / 'Industria'
-INPUT_VIDEO = '3_Deteccion_uso_celular.MOV'
 
 # Deep Learning model configuration
 YOLOV8_FOLDER = ROOT / 'models' / 'yolov8'
 YOLOV8_WEIGHTS = 'yolov8'
 YOLOV9_FOLDER = ROOT / 'models' / 'yolov9'
 YOLOV9_WEIGHTS = 'yolov9c'
-RTDETR_FOLDER = ROOT / 'models' / 'rt-detr'
-RTDETR_WEIGHTS = 'rtdetr-l'
+MODEL_FOLDER = ROOT / 'models' / 'yolov10'
+MODEL_WEIGHTS = 'yolov10x.pt'
+
 
 # Inference configuration
 IMAGE_SIZE = 640
@@ -39,6 +23,3 @@ TRACK_LENGTH = 100
 SHOW_IMAGE = True
 SAVE_CSV = True
 SAVE_VIDEO = True
-
-# Autolabelling
-SAMPLE_NUMBER = 100
